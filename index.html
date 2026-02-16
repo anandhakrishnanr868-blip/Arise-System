@@ -109,7 +109,7 @@ function save(){ localStorage.setItem("ariseData", JSON.stringify(data)); }
 function generateQuests(){
   data.quests = [
     {t:"Exercise: Run / Gym / Bodyweight",stat:"str",time:20,startTime:null,started:false,done:false,alarmSet:false},
-    {t:"Mind Training: Chess / Logic / Brain Puzzles",stat:"foc",time:10,startTime:null,started:false,done:false,alarmSet:false},
+    {t:"Mind Training: Chess / Logic / Brain Puzzles",stat:"foc",time:30,startTime:null,started:false,done:false,alarmSet:false},
     {t:"Skill: Learn New Tech / Build Mini Project",stat:"int",time:60,startTime:null,started:false,done:false,alarmSet:false},
     {t:"Strategy: Plan & Improve Company Workflow",stat:"int",time:60,startTime:null,started:false,done:false,alarmSet:false},
     {t:"Memory & Critical Thinking Training",stat:"foc",time:30,startTime:null,started:false,done:false,alarmSet:false}
@@ -180,7 +180,7 @@ function renderQuests(){
         if("Notification" in window && Notification.permission==="granted"){
           new Notification("Quest Ending Soon!", {body:`${q.t} ends in 5 minutes!`});
         }
-        let audio = new Audio("https://www.soundjay.com/buttons/beep-07.mp3");
+        let audio = new Audio("beep.mp3");
         audio.play();
       }
     }
