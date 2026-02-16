@@ -2,160 +2,60 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>ARISE SYSTEM</title>
+<title>ARISE SYSTEM - Personal Growth</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-
-body{
-margin:0;
-font-family: 'Cinzel', serif;
-background:
-radial-gradient(circle at center,#020202 0%,#000 70%);
-color:#7ef9ff;
-text-align:center;
-letter-spacing:1px;
-}
-
-/* title */
-h1{
-font-size:32px;
-margin-top:20px;
-color:#8be9fd;
-text-shadow:
-0 0 10px #00f0ff,
-0 0 20px #00f0ff,
-0 0 40px #0088ff;
-}
-
-/* panels */
-.card{
-margin:20px;
-padding:20px;
-border-radius:14px;
-background:
-linear-gradient(145deg,#020617,#000814);
-border:1px solid rgba(0,255,255,0.2);
-box-shadow:
-0 0 15px rgba(0,255,255,.15),
-inset 0 0 25px rgba(0,255,255,.08);
-position:relative;
-overflow:hidden;
-}
-
-/* glowing rune border animation */
-.card::before{
-content:"";
-position:absolute;
-inset:-2px;
-border-radius:16px;
-background:linear-gradient(90deg,
-transparent,
-#00f0ff,
-transparent);
-opacity:.2;
-animation:borderMove 4s linear infinite;
-}
-
-@keyframes borderMove{
-0%{transform:translateX(-100%)}
-100%{transform:translateX(100%)}
-}
-
-/* stat text */
-span{
-color:#b9ffff;
-font-weight:bold;
-text-shadow:0 0 8px #00eaff;
-}
-
-/* quest cards */
-.quest{
-margin:14px 0;
-padding:14px;
-background:
-linear-gradient(145deg,#000814,#010d1f);
-border-radius:12px;
-border:1px solid rgba(0,255,255,0.25);
-box-shadow:
-0 0 15px rgba(0,255,255,.15),
-inset 0 0 10px rgba(0,255,255,.1);
-transition:.3s;
-}
-
-.quest:hover{
-transform:scale(1.02);
-box-shadow:
-0 0 20px #00f0ff,
-inset 0 0 12px #00f0ff;
-}
-
-/* completed quest */
-.complete{
-background:linear-gradient(145deg,#021b12,#000)!important;
-border:1px solid #00ff9c!important;
-box-shadow:
-0 0 20px #00ff9c!important;
-color:#00ff9c;
-}
-
-/* buttons */
-button{
-margin-top:10px;
-padding:10px 18px;
-font-size:14px;
-border-radius:10px;
-border:none;
-cursor:pointer;
-background:
-linear-gradient(145deg,#00eaff,#0077ff);
-color:black;
-font-weight:bold;
-letter-spacing:1px;
-box-shadow:0 0 15px #00eaff;
-transition:.25s;
-}
-
-button:hover{
-transform:scale(1.08);
-box-shadow:
-0 0 25px #00eaff,
-0 0 40px #00eaff;
-}
-
-/* level up screen */
-#levelup{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:black;
-display:none;
-align-items:center;
-justify-content:center;
-font-size:48px;
-font-weight:bold;
-color:#7ef9ff;
-z-index:999;
-text-shadow:
-0 0 20px #00eaff,
-0 0 40px #00eaff,
-0 0 80px #00eaff;
-animation:pulse 1s infinite alternate;
-}
-
-@keyframes pulse{
-from{transform:scale(.95)}
-to{transform:scale(1.1)}
-}
-
+body{margin:0;font-family:'Cinzel', serif;background:radial-gradient(circle,#020202 0%,#000 70%);color:#7ef9ff;text-align:center;letter-spacing:1px;}
+h1{font-size:32px;margin-top:20px;color:#8be9fd;text-shadow:0 0 10px #00f0ff,0 0 20px #00f0ff,0 0 40px #0088ff;}
+.card{margin:20px;padding:20px;border-radius:14px;background:linear-gradient(145deg,#020617,#000814);border:1px solid rgba(0,255,255,0.2);box-shadow:0 0 15px rgba(0,255,255,.15),inset 0 0 25px rgba(0,255,255,.08);position:relative;overflow:hidden;}
+span{color:#b9ffff;font-weight:bold;text-shadow:0 0 8px #00eaff;}
+.quest{margin:14px 0;padding:14px;background:linear-gradient(145deg,#000814,#010d1f);border-radius:12px;border:1px solid rgba(0,255,255,.25);box-shadow:0 0 15px rgba(0,255,255,.15),inset 0 0 10px rgba(0,255,255,.1);transition:.3s;}
+.quest:hover{transform:scale(1.02);box-shadow:0 0 20px #00f0ff,inset 0 0 12px #00f0ff;}
+.complete{background:linear-gradient(145deg,#021b12,#000)!important;border:1px solid #00ff9c!important;box-shadow:0 0 20px #00ff9c!important;color:#00ff9c;}
+button{margin:5px;padding:6px 14px;font-size:14px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(145deg,#00eaff,#0077ff);color:black;font-weight:bold;letter-spacing:1px;box-shadow:0 0 10px #00eaff;transition:.25s;}
+button:hover{transform:scale(1.08);box-shadow:0 0 20px #00eaff,0 0 30px #00eaff;}
+#levelup{position:fixed;top:0;left:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:black;font-size:48px;font-weight:bold;color:#7ef9ff;z-index:999;text-shadow:0 0 20px #00eaff,0 0 40px #00eaff,0 0 80px #00eaff;animation:pulse 1s infinite alternate;}
+@keyframes pulse{from{transform:scale(.95)}to{transform:scale(1.1)}}
+.timer{font-size:14px;color:#ffd;display:block;margin-top:4px;}
 </style>
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-messaging.js";
 
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID",
+  measurementId: "YOUR_MEASUREMENT_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const messaging = getMessaging(app);
+
+// Request permission and get FCM token
+Notification.requestPermission().then((permission)=>{
+  if(permission==="granted"){
+    console.log("Notification permission granted.");
+    getToken(messaging,{vapidKey:"YOUR_WEB_PUSH_CERTIFICATE_KEY"}).then((token)=>{
+      console.log("FCM Token:",token);
+    });
+  }
+});
+
+// Handle messages in foreground
+onMessage(messaging, (payload)=>{
+  console.log("Foreground message:", payload);
+  alert(payload.notification?.body || "New Quest!");
+});
+</script>
 </head>
 <body>
 
 <div id="levelup">LEVEL UP</div>
-
 <h1>ARISE SYSTEM</h1>
 
 <div class="card">
@@ -166,9 +66,7 @@ Streak: <span id="streak"></span>
 </div>
 
 <div class="card">
-STR <span id="str"></span> |
-INT <span id="int"></span> |
-FOC <span id="foc"></span>
+STR <span id="str"></span> | INT <span id="int"></span> | FOC <span id="foc"></span>
 </div>
 
 <div class="card">
@@ -182,158 +80,169 @@ FOC <span id="foc"></span>
 </div>
 
 <script>
-
-const today = new Date().toDateString()
-
+const today = new Date().toDateString();
 let data = JSON.parse(localStorage.getItem("ariseData")) || {
-date: today,
-xp:0,
-level:1,
-str:1,
-int:1,
-foc:1,
-streak:0,
-completed:[],
-quests:[]
-}
+  date: today,
+  xp:0,
+  level:1,
+  str:1,
+  int:1,
+  foc:1,
+  streak:0,
+  quests:[]
+};
 
 function rank(lv){
-if(lv<5) return "E"
-if(lv<10) return "D"
-if(lv<20) return "C"
-if(lv<30) return "B"
-if(lv<40) return "A"
-if(lv<50) return "S"
-if(lv<75) return "SS"
-if(lv<100) return "SSS"
-return "MONARCH"
+  if(lv<5) return "E";
+  if(lv<10) return "D";
+  if(lv<20) return "C";
+  if(lv<30) return "B";
+  if(lv<40) return "A";
+  if(lv<50) return "S";
+  if(lv<75) return "SS";
+  if(lv<100) return "SSS";
+  return "MONARCH";
 }
 
-function save(){
-localStorage.setItem("ariseData",JSON.stringify(data))
-}
-
-function random(arr){
-return arr[Math.floor(Math.random()*arr.length)]
-}
-
-const exercise=[
-"work out 20M",
-"work out 20M",
-"work out 20M",
-"work out 20M",
-"work out 20M"
-]
-
-const mind=[
-"Solve 5 problems",
-"Play chess 15min",
-"Memory training",
-"Logic puzzles"
-]
-
-const skill=[
-"Code 30min",
-"Learn new tech",
-"Read 20 pages",
-"Build mini project",
-"Watch tutorial + notes"
-]
-
-const work=[
-"Deep work 1h",
-"Plan goals",
-"Finish hard task",
-"No distraction session",
-"Improve workflow"
-]
+function save(){ localStorage.setItem("ariseData", JSON.stringify(data)); }
 
 function generateQuests(){
-
-data.quests=[
-{t:random(exercise),stat:"str"},
-{t:random(mind),stat:"foc"},
-{t:random(skill),stat:"int"},
-{t:random(work),stat:"int"}
-]
-
-if(Math.random()<0.25){
-data.quests.push({t:"Hidden Quest: Cold Shower",stat:"str"})
+  data.quests = [
+    {t:"Exercise: Run / Gym / Bodyweight",stat:"str",time:20,startTime:null,started:false,done:false,alarmSet:false},
+    {t:"Mind Training: Chess / Logic / Brain Puzzles",stat:"foc",time:10,startTime:null,started:false,done:false,alarmSet:false},
+    {t:"Skill: Learn New Tech / Build Mini Project",stat:"int",time:60,startTime:null,started:false,done:false,alarmSet:false},
+    {t:"Strategy: Plan & Improve Company Workflow",stat:"int",time:60,startTime:null,started:false,done:false,alarmSet:false},
+    {t:"Memory & Critical Thinking Training",stat:"foc",time:30,startTime:null,started:false,done:false,alarmSet:false}
+  ];
+  if(Math.random()<0.2) data.quests.push({t:"Hidden Quest: Cold Shower + Meditation",stat:"str",time:15,startTime:null,started:false,done:false,alarmSet:false});
+  save();
 }
 
-save()
+// Reset daily quests
+if(data.date!==today || data.quests.length===0){
+  data.date=today;
+  data.streak++;
+  generateQuests();
 }
 
-if(data.date!==today){
-if(data.completed.length < data.quests.length){
-data.event="PUNISHMENT DUNGEON: +Extra 2 quests"
-data.quests.push(
-{t:"Penalty Pushups",stat:"str"},
-{t:"Extra Brain Training",stat:"int"}
-)
-data.streak=0
-}else{
-data.streak++
-}
-data.completed=[]
-data.date=today
-generateQuests()
-}
-
-if(data.quests.length===0) generateQuests()
-
+// Level up
 function levelUp(){
-data.level++
-data.xp=0
-document.getElementById("levelup").style.display="flex"
-setTimeout(()=>document.getElementById("levelup").style.display="none",2000)
-
-if(data.level==25) alert("SPECIAL QUEST UNLOCKED")
-if(data.level==50) alert("ELITE TRIAL")
-if(data.level==75) alert("S-RANK TEST")
-if(data.level==100) alert("MONARCH ASCENSION")
-
-save()
+  data.level++;
+  data.xp=0;
+  document.getElementById("levelup").style.display="flex";
+  setTimeout(()=>document.getElementById("levelup").style.display="none",2000);
+  alert(`Level ${data.level} reached!`);
+  save();
+  renderAll();
 }
 
-function complete(i){
-if(data.completed.includes(i)) return
-
-data.completed.push(i)
-data.xp+=25
-data[data.quests[i].stat]+=1
-
-if(data.xp>=100) levelUp()
-
-save()
-render()
+// Start quest
+function startQuest(i){
+  let q=data.quests[i];
+  if(q.done || q.started) return;
+  q.started=true;
+  q.startTime=Date.now();
+  q.alarmSet=false;
+  save();
+  renderAll();
 }
 
-function render(){
-
-document.getElementById("level").textContent=data.level
-document.getElementById("xp").textContent=data.xp
-document.getElementById("rank").textContent=rank(data.level)
-document.getElementById("str").textContent=data.str
-document.getElementById("int").textContent=data.int
-document.getElementById("foc").textContent=data.foc
-document.getElementById("streak").textContent=data.streak
-document.getElementById("event").textContent=data.event || "None"
-
-let qhtml=""
-data.quests.forEach((q,i)=>{
-qhtml+=`
-<div class="quest ${data.completed.includes(i)?"complete":""}">
-${q.t}<br>
-<button onclick="complete(${i})">COMPLETE</button>
-</div>`
-})
-
-document.getElementById("quests").innerHTML=qhtml
+// Complete quest
+function completeQuest(i){
+  let q=data.quests[i];
+  if(!q.started) return alert("Start the quest first!");
+  let elapsedMS = Date.now() - q.startTime;
+  if(elapsedMS < q.time*60*1000){
+    let remainMin = Math.ceil((q.time*60*1000 - elapsedMS)/60000);
+    return alert(`Quest not finished! ${remainMin} min remaining`);
+  }
+  q.done=true;
+  data.xp+=25;
+  data[q.stat]+=1;
+  if(data.xp>=100) levelUp();
+  save();
+  renderAll();
 }
 
-render()
+// Render quests
+function renderQuests(){
+  let qhtml="";
+  data.quests.forEach((q,i)=>{
+    let timerText="";
+    let remainingMS=0;
+    if(q.started && !q.done){
+      remainingMS = Math.max(0,q.time*60*1000 - (Date.now()-q.startTime));
+      let mins = Math.floor(remainingMS/60000);
+      let secs = Math.floor((remainingMS%60000)/1000);
+      timerText=`<span class="timer">${mins}m ${secs}s remaining</span>`;
+      if(remainingMS<=5*60*1000 && !q.alarmSet){
+        q.alarmSet=true;
+        if("Notification" in window && Notification.permission==="granted"){
+          new Notification("Quest Ending Soon!", {body:`${q.t} ends in 5 minutes!`});
+        }
+        let audio = new Audio("https://www.soundjay.com/buttons/beep-07.mp3");
+        audio.play();
+      }
+    }
+    qhtml+=`<div class="quest ${q.done?"complete":""}">
+    ${q.t} ${timerText}<br>
+    <button onclick="startQuest(${i})" ${q.done||q.started?"disabled":""}>START</button>
+    <button onclick="completeQuest(${i})" ${q.done||!q.started||remainingMS>0?"disabled":""}>DONE</button>
+    </div>`;
+  });
+  document.getElementById("quests").innerHTML=qhtml;
+}
 
+// Render all stats
+function renderAll(){
+  document.getElementById("level").textContent=data.level;
+  document.getElementById("xp").textContent=data.xp;
+  document.getElementById("str").textContent=data.str;
+  document.getElementById("int").textContent=data.int;
+  document.getElementById("foc").textContent=data.foc;
+  document.getElementById("streak").textContent=data.streak;
+  document.getElementById("rank").textContent=rank(data.level);
+  renderQuests();
+}
+
+setInterval(renderAll,1000);
+renderAll();
 </script>
+
+<!-- Service Worker registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    .then((registration) => {
+      console.log('Service Worker registered with scope:', registration.scope);
+      const messaging = firebase.messaging();
+
+      // Get FCM token for this device/browser
+      messaging.getToken({ vapidKey: 'BFK2GlcKTpjfxYeb72YJkfoEmOuBtqpoTX8SJEgE0a3HoiUmqqsgxNIo3TJ5Dz89Nu6P8caP23xvGOC0t6z8rPs', serviceWorkerRegistration: registration })
+        .then((currentToken) => {
+          if (currentToken) {
+            console.log('FCM Token:', currentToken);
+            // You can send this token to your server to send push notifications later
+          } else {
+            console.log('No registration token available. Request permission to generate one.');
+          }
+        })
+        .catch((err) => {
+          console.log('An error occurred while retrieving token. ', err);
+        });
+
+      // Listen to foreground messages
+      messaging.onMessage((payload) => {
+        console.log('Message received. ', payload);
+        alert(`${payload.notification.title}: ${payload.notification.body}`);
+      });
+    })
+    .catch((err) => {
+      console.log('Service Worker registration failed: ', err);
+    });
+
+}
+</script>
+
 </body>
 </html>
