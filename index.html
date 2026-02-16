@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <title>ARISE SYSTEM - Personal Growth</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Firebase UMD scripts -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
+
 <style>
 body{margin:0;font-family:'Cinzel', serif;background:radial-gradient(circle,#020202 0%,#000 70%);color:#7ef9ff;text-align:center;letter-spacing:1px;}
 h1{font-size:32px;margin-top:20px;color:#8be9fd;text-shadow:0 0 10px #00f0ff,0 0 20px #00f0ff,0 0 40px #0088ff;}
@@ -18,40 +23,6 @@ button:hover{transform:scale(1.08);box-shadow:0 0 20px #00eaff,0 0 30px #00eaff;
 @keyframes pulse{from{transform:scale(.95)}to{transform:scale(1.1)}}
 .timer{font-size:14px;color:#ffd;display:block;margin-top:4px;}
 </style>
-<!-- Firebase -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-messaging.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyB5DS7HM1yLFGwYAFLt8OkqdYKm0RwQlMw",
-  authDomain: "arise-system-19b38.firebaseapp.com",
-  projectId: "arise-system-19b38",
-  storageBucket: "arise-system-19b38.firebasestorage.app",
-  messagingSenderId: "782859526063",
-  appId: "1:782859526063:web:e6d9f9a282b676eaac995a",
-  measurementId: "G-8H9D0FJSBG"
-};
-
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
-
-// Request permission and get FCM token
-Notification.requestPermission().then((permission)=>{
-  if(permission==="granted"){
-    console.log("Notification permission granted.");
-    getToken(messaging,{vapidKey:"YOUR_WEB_PUSH_CERTIFICATE_KEY"}).then((token)=>{
-      console.log("FCM Token:",token);
-    });
-  }
-});
-
-// Handle messages in foreground
-onMessage(messaging, (payload)=>{
-  console.log("Foreground message:", payload);
-  alert(payload.notification?.body || "New Quest!");
-});
-</script>
 </head>
 <body>
 
@@ -79,170 +50,170 @@ STR <span id="str"></span> | INT <span id="int"></span> | FOC <span id="foc"></s
 <div id="event"></div>
 </div>
 
+<!-- Enable Notifications Button -->
+<div class="card">
+<button id="enable-notifications">Enable Notifications & Register SW</button>
+</div>
+
 <script>
 const today = new Date().toDateString();
 let data = JSON.parse(localStorage.getItem("ariseData")) || {
-  date: today,
-  xp:0,
-  level:1,
-  str:1,
-  int:1,
-  foc:1,
-  streak:0,
-  quests:[]
+    date: today,
+    xp:0, level:1, str:1, int:1, foc:1, streak:0, quests:[]
 };
 
+// Rank system
 function rank(lv){
-  if(lv<5) return "E";
-  if(lv<10) return "D";
-  if(lv<20) return "C";
-  if(lv<30) return "B";
-  if(lv<40) return "A";
-  if(lv<50) return "S";
-  if(lv<75) return "SS";
-  if(lv<100) return "SSS";
-  return "MONARCH";
+    if(lv<5) return "E";
+    if(lv<10) return "D";
+    if(lv<20) return "C";
+    if(lv<30) return "B";
+    if(lv<40) return "A";
+    if(lv<50) return "S";
+    if(lv<75) return "SS";
+    if(lv<100) return "SSS";
+    return "MONARCH";
 }
 
+// Save data
 function save(){ localStorage.setItem("ariseData", JSON.stringify(data)); }
 
+// Generate growth-focused quests
 function generateQuests(){
-  data.quests = [
-    {t:"Exercise: Run / Gym / Bodyweight",stat:"str",time:20,startTime:null,started:false,done:false,alarmSet:false},
-    {t:"Mind Training: Chess / Logic / Brain Puzzles",stat:"foc",time:30,startTime:null,started:false,done:false,alarmSet:false},
-    {t:"Skill: Learn New Tech / Build Mini Project",stat:"int",time:60,startTime:null,started:false,done:false,alarmSet:false},
-    {t:"Strategy: Plan & Improve Company Workflow",stat:"int",time:60,startTime:null,started:false,done:false,alarmSet:false},
-    {t:"Memory & Critical Thinking Training",stat:"foc",time:30,startTime:null,started:false,done:false,alarmSet:false}
-  ];
-  if(Math.random()<0.2) data.quests.push({t:"Hidden Quest: Cold Shower + Meditation",stat:"str",time:15,startTime:null,started:false,done:false,alarmSet:false});
-  save();
+    data.quests = [
+        {t:"Exercise: Run / Gym / Bodyweight",stat:"str",time:20,startTime:null,started:false,done:false,alarmSet:false},
+        {t:"Mind Training: Chess / Logic / Brain Puzzles",stat:"foc",time:30,startTime:null,started:false,done:false,alarmSet:false},
+        {t:"Skill: Learn New Tech / Build Mini Project",stat:"int",time:60,startTime:null,started:false,done:false,alarmSet:false},
+        {t:"Strategy: Plan & Improve Company Workflow",stat:"int",time:60,startTime:null,started:false,done:false,alarmSet:false},
+        {t:"Memory & Critical Thinking Training",stat:"foc",time:30,startTime:null,started:false,done:false,alarmSet:false}
+    ];
+    if(Math.random()<0.2) data.quests.push({t:"Hidden Quest: Cold Shower + Meditation",stat:"str",time:15,startTime:null,started:false,done:false,alarmSet:false});
+    save();
 }
 
-// Reset daily quests
+// Punishment for missed quests
+function addPunishment(){
+    let missed = data.quests.filter(q=>!q.done);
+    if(missed.length>0){
+        data.event = `PUNISHMENT DUNGEON: ${missed.length} missed quests!`;
+        missed.forEach(q=>{
+            data.quests.push({t:"Punishment: Extra Brain & Strength Training",stat:"str",time:20,startTime:null,started:false,done:false,alarmSet:false});
+        });
+        data.streak=0;
+        save();
+        if("Notification" in window && Notification.permission==="granted"){
+            new Notification("Punishment Dungeon Activated!", {body:`You missed ${missed.length} quest(s)`});
+        }
+    }
+}
+
+// Daily reset
 if(data.date!==today || data.quests.length===0){
-  data.date=today;
-  data.streak++;
-  generateQuests();
+    data.date=today;
+    data.streak++;
+    generateQuests();
 }
 
 // Level up
 function levelUp(){
-  data.level++;
-  data.xp=0;
-  document.getElementById("levelup").style.display="flex";
-  setTimeout(()=>document.getElementById("levelup").style.display="none",2000);
-  alert(`Level ${data.level} reached!`);
-  save();
-  renderAll();
+    data.level++; data.xp=0;
+    document.getElementById("levelup").style.display="flex";
+    setTimeout(()=>document.getElementById("levelup").style.display="none",2000);
+    alert(`Level ${data.level} reached!`);
+    save(); renderAll();
 }
 
 // Start quest
 function startQuest(i){
-  let q=data.quests[i];
-  if(q.done || q.started) return;
-  q.started=true;
-  q.startTime=Date.now();
-  q.alarmSet=false;
-  save();
-  renderAll();
+    let q=data.quests[i];
+    if(q.done || q.started) return;
+    q.started=true; q.startTime=Date.now(); q.alarmSet=false;
+    save(); renderAll();
+    if("Notification" in window && Notification.permission==="granted"){
+        new Notification("Quest Started", {body:q.t});
+    }
 }
 
 // Complete quest
 function completeQuest(i){
-  let q=data.quests[i];
-  if(!q.started) return alert("Start the quest first!");
-  let elapsedMS = Date.now() - q.startTime;
-  if(elapsedMS < q.time*60*1000){
-    let remainMin = Math.ceil((q.time*60*1000 - elapsedMS)/60000);
-    return alert(`Quest not finished! ${remainMin} min remaining`);
-  }
-  q.done=true;
-  data.xp+=25;
-  data[q.stat]+=1;
-  if(data.xp>=100) levelUp();
-  save();
-  renderAll();
+    let q=data.quests[i];
+    if(!q.started) return alert("Start the quest first!");
+    let elapsedMS = Date.now()-q.startTime;
+    if(elapsedMS < q.time*60*1000){
+        let remainMin = Math.ceil((q.time*60*1000 - elapsedMS)/60000);
+        return alert(`Quest not finished! ${remainMin} min remaining`);
+    }
+    q.done=true; data.xp+=25; data[q.stat]+=1;
+    if(data.xp>=100) levelUp();
+    save(); renderAll();
+    if("Notification" in window && Notification.permission==="granted"){
+        new Notification("Quest Completed!", {body:q.t});
+    }
 }
 
 // Render quests
 function renderQuests(){
-  let qhtml="";
-  data.quests.forEach((q,i)=>{
-    let timerText="";
-    let remainingMS=0;
-    if(q.started && !q.done){
-      remainingMS = Math.max(0,q.time*60*1000 - (Date.now()-q.startTime));
-      let mins = Math.floor(remainingMS/60000);
-      let secs = Math.floor((remainingMS%60000)/1000);
-      timerText=`<span class="timer">${mins}m ${secs}s remaining</span>`;
-      if(remainingMS<=5*60*1000 && !q.alarmSet){
-        q.alarmSet=true;
-        if("Notification" in window && Notification.permission==="granted"){
-          new Notification("Quest Ending Soon!", {body:`${q.t} ends in 5 minutes!`});
+    let qhtml="";
+    data.quests.forEach((q,i)=>{
+        let timerText="";
+        let remainingMS=0;
+        if(q.started && !q.done){
+            remainingMS=Math.max(0,q.time*60*1000-(Date.now()-q.startTime));
+            let mins=Math.floor(remainingMS/60000);
+            let secs=Math.floor((remainingMS%60000)/1000);
+            timerText=`<span class="timer">${mins}m ${secs}s remaining</span>`;
+            if(remainingMS<=5*60*1000 && !q.alarmSet){
+                q.alarmSet=true;
+                if("Notification" in window && Notification.permission==="granted"){
+                    new Notification("Quest Ending Soon!", {body:`${q.t} ends in 5 minutes!`});
+                }
+                let audio = new Audio("https://arise-attack.netlify.app/beep.mp3");
+                audio.play();
+            }
         }
-        let audio = new Audio("beep.mp3");
-        audio.play();
-      }
-    }
-    qhtml+=`<div class="quest ${q.done?"complete":""}">
-    ${q.t} ${timerText}<br>
-    <button onclick="startQuest(${i})" ${q.done||q.started?"disabled":""}>START</button>
-    <button onclick="completeQuest(${i})" ${q.done||!q.started||remainingMS>0?"disabled":""}>DONE</button>
-    </div>`;
-  });
-  document.getElementById("quests").innerHTML=qhtml;
+        qhtml+=`<div class="quest ${q.done?"complete":""}">
+        ${q.t} ${timerText}<br>
+        <button onclick="startQuest(${i})" ${q.done||q.started?"disabled":""}>START</button>
+        <button onclick="completeQuest(${i})" ${q.done||!q.started||remainingMS>0?"disabled":""}>DONE</button>
+        </div>`;
+    });
+    document.getElementById("quests").innerHTML=qhtml;
 }
 
-// Render all stats
+// Render stats
 function renderAll(){
-  document.getElementById("level").textContent=data.level;
-  document.getElementById("xp").textContent=data.xp;
-  document.getElementById("str").textContent=data.str;
-  document.getElementById("int").textContent=data.int;
-  document.getElementById("foc").textContent=data.foc;
-  document.getElementById("streak").textContent=data.streak;
-  document.getElementById("rank").textContent=rank(data.level);
-  renderQuests();
+    document.getElementById("level").textContent=data.level;
+    document.getElementById("xp").textContent=data.xp;
+    document.getElementById("str").textContent=data.str;
+    document.getElementById("int").textContent=data.int;
+    document.getElementById("foc").textContent=data.foc;
+    document.getElementById("streak").textContent=data.streak;
+    document.getElementById("rank").textContent=rank(data.level);
+    document.getElementById("event").textContent=data.event||"None";
+    renderQuests();
 }
 
+// Update every second
 setInterval(renderAll,1000);
 renderAll();
+
+// Register Service Worker and request FCM token on user click
+document.getElementById("enable-notifications").addEventListener("click", async () => {
+    const permission = await Notification.requestPermission();
+    if(permission!=="granted") return alert("Notifications blocked!");
+    if('serviceWorker' in navigator){
+        try{
+            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+            console.log("SW registered:", registration.scope);
+            const messaging = firebase.messaging();
+            const token = await messaging.getToken({
+                vapidKey: "BFK2GlcKTpjfxYeb72YJkfoEmOuBtqpoTX8SJEgE0a3HoiUmqqsgxNIo3TJ5Dz89Nu6P8caP23xvGOC0t6z8rPs",
+                serviceWorkerRegistration: registration
+            });
+            console.log("FCM Token:", token);
+        } catch(err){console.error("SW registration failed:", err);}
+    }
+});
 </script>
-
-<!-- Service Worker registration -->
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/firebase-messaging-sw.js')
-    .then((registration) => {
-      console.log('Service Worker registered with scope:', registration.scope);
-      const messaging = firebase.messaging();
-
-      // Get FCM token for this device/browser
-      messaging.getToken({ vapidKey: 'BFK2GlcKTpjfxYeb72YJkfoEmOuBtqpoTX8SJEgE0a3HoiUmqqsgxNIo3TJ5Dz89Nu6P8caP23xvGOC0t6z8rPs', serviceWorkerRegistration: registration })
-        .then((currentToken) => {
-          if (currentToken) {
-            console.log('FCM Token:', currentToken);
-            // You can send this token to your server to send push notifications later
-          } else {
-            console.log('No registration token available. Request permission to generate one.');
-          }
-        })
-        .catch((err) => {
-          console.log('An error occurred while retrieving token. ', err);
-        });
-
-      // Listen to foreground messages
-      messaging.onMessage((payload) => {
-        console.log('Message received. ', payload);
-        alert(`${payload.notification.title}: ${payload.notification.body}`);
-      });
-    })
-    .catch((err) => {
-      console.log('Service Worker registration failed: ', err);
-    });
-
-}
-</script>
-
 </body>
 </html>
