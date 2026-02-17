@@ -1,276 +1,288 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>ARISE SYSTEM</title>
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body{
 margin:0;
+font-family:Arial;
 background:#000;
-color:#00ffe7;
-font-family:serif;
+color:#7ef9ff;
 text-align:center;
 }
 
-h1{
-margin-top:15px;
-text-shadow:0 0 15px cyan;
-}
+h1{margin-top:20px}
 
-.panel{
-margin:15px;
-padding:15px;
-border-radius:16px;
-border:1px solid cyan;
-box-shadow:0 0 15px cyan inset,0 0 15px cyan;
+.card{
+margin:20px;
+padding:20px;
+border-radius:14px;
+background:#071018;
+border:1px solid #00eaff33;
 }
 
 .quest{
-margin:12px;
+margin:14px 0;
 padding:14px;
-border-radius:14px;
-border:1px solid lime;
-box-shadow:0 0 10px lime;
+background:#010c14;
+border-radius:10px;
+border:1px solid #00eaff33;
 }
 
-.done{
-background:#002b26;
-border-color:#00ffb7;
+.complete{
+background:#001a12!important;
+border:1px solid #00ff9c!important;
+color:#00ff9c;
 }
 
 button{
 margin:6px;
-padding:8px 18px;
+padding:8px 16px;
+border-radius:8px;
 border:none;
-border-radius:10px;
-background:cyan;
-font-weight:bold;
 cursor:pointer;
+background:#00eaff;
+font-weight:bold;
 }
 
 .timer{
+font-size:14px;
 color:#fff;
-font-size:13px;
+display:block;
+margin-top:6px;
 }
 
-.rank{
-font-size:18px;
-color:gold;
+#levelup{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+display:none;
+align-items:center;
+justify-content:center;
+background:black;
+font-size:50px;
+font-weight:bold;
+color:#00eaff;
+z-index:999;
 }
 </style>
 </head>
 <body>
 
+<div id="levelup">LEVEL UP</div>
+
 <h1>ARISE SYSTEM</h1>
 
-<audio id="alarm" src="beep.mp3" preload="auto"></audio>
-
-<div class="panel">
-LEVEL <span id="level">1</span><br>
-XP <span id="xp">0</span>/100<br>
-Rank <span class="rank" id="rank">E</span><br><br>
-STR <span id="str">1</span> |
-INT <span id="int">1</span> |
-FOC <span id="foc">1</span>
+<div class="card">
+LEVEL <span id="level"></span><br>
+XP <span id="xp"></span>/100<br>
+Rank <span id="rank"></span><br>
+Streak <span id="streak"></span>
 </div>
 
-<div class="panel">
+<div class="card">
+STR <span id="str"></span> |
+INT <span id="int"></span> |
+FOC <span id="foc"></span>
+</div>
+
+<div class="card">
 <h2>Daily Quests</h2>
 <div id="quests"></div>
 </div>
 
-<div class="panel" id="penaltyBox" style="display:none">
-<h2>PUNISHMENT QUEST</h2>
-<div id="penalty"></div>
+<div class="card">
+<h2>Event</h2>
+<div id="event"></div>
 </div>
 
 <script>
 
-/* ---------- RANK ---------- */
+/* ---------- SAVE SYSTEM ---------- */
 
-function rank(l){
-if(l<5)return"E";
-if(l<10)return"D";
-if(l<20)return"C";
-if(l<30)return"B";
-if(l<50)return"A";
-if(l<70)return"S";
-if(l<100)return"SS";
-return"SSS";
-}
+const today = new Date().toDateString()
 
-/* ---------- STORAGE ---------- */
-
-const today=new Date().toDateString();
-
-let data=JSON.parse(localStorage.getItem("arise"))||{
+let data = JSON.parse(localStorage.getItem("arise")) || {
 date:today,
 xp:0,
 level:1,
 str:1,
 int:1,
 foc:1,
-quests:[],
-penalty:null,
-played:{}
-};
+streak:0,
+quests:[]
+}
+
+/* ---------- RANK SYSTEM ---------- */
+
+function rank(l){
+if(l<5)return"E"
+if(l<10)return"D"
+if(l<20)return"C"
+if(l<30)return"B"
+if(l<40)return"A"
+if(l<50)return"S"
+if(l<75)return"SS"
+if(l<100)return"SSS"
+return"MONARCH"
+}
 
 function save(){
-localStorage.setItem("arise",JSON.stringify(data));
+localStorage.setItem("arise",JSON.stringify(data))
 }
 
-/* ---------- QUESTS ---------- */
+/* ---------- QUEST GENERATOR ---------- */
 
-function generate(){
-return[
-{name:"Strength Training",stat:"str",time:15,start:0,done:false},
-{name:"Logic Puzzle",stat:"int",time:20,start:0,done:false},
-{name:"Deep Focus Study",stat:"foc",time:25,start:0,done:false},
-{name:"Skill Building",stat:"int",time:30,start:0,done:false},
-{name:"Strategy Thinking",stat:"foc",time:20,start:0,done:false}
-];
+function generateQuests(){
+data.quests = [
+{t:"Strength Training",stat:"str",time:20,start:0,started:false,done:false},
+{t:"Brain Training",stat:"foc",time:25,start:0,started:false,done:false},
+{t:"Learn New Skill",stat:"int",time:60,start:0,started:false,done:false},
+{t:"Critical Thinking Tasks",stat:"foc",time:30,start:0,started:false,done:false},
+{t:"Strategy Planning",stat:"int",time:40,start:0,started:false,done:false}
+]
+
+// hidden quest chance
+if(Math.random()<0.3){
+data.quests.push({t:"Hidden Quest: Cold Shower + Meditation",stat:"str",time:15,start:0,started:false,done:false})
 }
 
-/* ---------- PENALTY ---------- */
-
-function penalty(){
-let p=[
-"100 Pushups",
-"Run 2km",
-"Cold Shower",
-"1h Study",
-"30m Meditation"
-];
-return{name:p[Math.floor(Math.random()*p.length)],done:false};
+save()
 }
 
-/* ---------- RESET ---------- */
+/* ---------- DAILY RESET ---------- */
 
 if(data.date!==today){
 
-let miss=data.quests.some(q=>!q.done);
+let missed=data.quests.filter(q=>!q.done).length
 
-data.date=today;
-data.quests=generate();
-
-data.penalty=miss?penalty():null;
-data.played={};
-
-save();
+if(missed>0){
+data.event="PUNISHMENT: "+missed+" missed quests!"
+for(let i=0;i<missed;i++){
+data.quests.push({
+t:"Punishment Training",
+stat:"str",
+time:20,
+start:0,
+started:false,
+done:false
+})
+}
+data.streak=0
+}else{
+data.streak++
+data.event="Perfect Day"
 }
 
-/* ---------- ACTIONS ---------- */
-
-window.startQ=i=>{
-data.quests[i].start=Date.now();
-save();
-render();
-};
-
-window.doneQ=i=>{
-let q=data.quests[i];
-
-if(Date.now()-q.start < q.time*60000){
-alert("Timer not finished");
-return;
+data.date=today
+generateQuests()
 }
 
-q.done=true;
-data.xp+=20;
-data[q.stat]+=1;
-
-if(data.xp>=100){
-data.xp=0;
-data.level++;
-alert("LEVEL UP");
+/* first launch fix */
+if(!data.quests || data.quests.length===0){
+generateQuests()
 }
 
-save();
-render();
-};
+/* ---------- LEVEL UP ---------- */
 
-window.finishPenalty=()=>{
-data.penalty=null;
-save();
-render();
-};
+function levelUp(){
+data.level++
+data.xp=0
 
-/* ---------- SOUND ---------- */
+document.getElementById("levelup").style.display="flex"
+setTimeout(()=>document.getElementById("levelup").style.display="none",2000)
 
-function playSound(){
-let a=document.getElementById("alarm");
-a.currentTime=0;
-a.play().catch(()=>{});
+save()
 }
 
-/* ---------- RENDER ---------- */
+/* ---------- START QUEST ---------- */
 
-function render(){
+function startQuest(i){
+let q=data.quests[i]
+if(q.started||q.done)return
 
-level.textContent=data.level;
-xp.textContent=data.xp;
-rank.textContent=rank(data.level);
+q.started=true
+q.start=Date.now()
+save()
+render()
+}
 
-str.textContent=data.str;
-int.textContent=data.int;
-foc.textContent=data.foc;
+/* ---------- COMPLETE QUEST ---------- */
 
-/* quests */
+function completeQuest(i){
+let q=data.quests[i]
+if(!q.started)return alert("Start quest first")
 
-let html="";
+let elapsed = Date.now()-q.start
+if(elapsed < q.time*60000){
+return alert("Not finished yet")
+}
+
+q.done=true
+data.xp+=25
+data[q.stat]++
+
+if(data.xp>=100) levelUp()
+
+save()
+render()
+}
+
+/* ---------- RENDER QUESTS ---------- */
+
+function renderQuests(){
+let html=""
 
 data.quests.forEach((q,i)=>{
 
-let remain="";
+let remain=0
+let timer=""
 
-if(q.start && !q.done){
-let r=q.time*60000-(Date.now()-q.start);
-if(r<0)r=0;
-
-let m=Math.floor(r/60000);
-let s=Math.floor((r%60000)/1000);
-
-remain=`<div class="timer">${m}:${s.toString().padStart(2,"0")}</div>`;
-
-if(r===0 && !data.played[i]){
-playSound();
-data.played[i]=true;
-save();
-}
+if(q.started && !q.done){
+remain=Math.max(0,q.time*60000-(Date.now()-q.start))
+let m=Math.floor(remain/60000)
+let s=Math.floor((remain%60000)/1000)
+timer=`<span class="timer">${m}m ${s}s remaining</span>`
 }
 
 html+=`
-<div class="quest ${q.done?"done":""}">
-${q.name}
-${remain}
+<div class="quest ${q.done?"complete":""}">
+${q.t}
+${timer}
 <br>
-<button onclick="startQ(${i})">Start</button>
-<button onclick="doneQ(${i})">Done</button>
-</div>
-`;
-});
+<button onclick="startQuest(${i})" ${q.started||q.done?"disabled":""}>START</button>
+<button onclick="completeQuest(${i})" ${!q.started||remain>0||q.done?"disabled":""}>DONE</button>
+</div>`
+})
 
-quests.innerHTML=html;
-
-/* penalty */
-
-if(data.penalty){
-penaltyBox.style.display="block";
-penalty.innerHTML=`
-<div class="quest">
-${data.penalty.name}<br>
-<button onclick="finishPenalty()">Complete</button>
-</div>`;
-}else{
-penaltyBox.style.display="none";
+document.getElementById("quests").innerHTML=html
 }
 
+/* ---------- MAIN RENDER ---------- */
+
+function render(){
+
+document.getElementById("level").textContent=data.level
+document.getElementById("xp").textContent=data.xp
+document.getElementById("rank").textContent=rank(data.level)
+document.getElementById("str").textContent=data.str
+document.getElementById("int").textContent=data.int
+document.getElementById("foc").textContent=data.foc
+document.getElementById("streak").textContent=data.streak
+document.getElementById("event").textContent=data.event||"None"
+
+renderQuests()
 }
 
-setInterval(render,1000);
-render();
+/* refresh timers every second */
+setInterval(render,1000)
+
+render()
 
 </script>
 </body>
