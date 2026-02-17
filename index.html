@@ -70,21 +70,49 @@ padding:10px;
 font-size:12px;
 z-index:9999;
 border:1px solid lime;"></div>
-
 <script>
-function log(msg){
+function debug(msg){
   const box=document.getElementById("debugBox");
-  box.innerHTML += msg+"<br>";
+  if(box) box.innerHTML += msg+"<br>";
 }
 
-function toggleDebug(){
-  const box=document.getElementById("debugBox");
-  box.style.display = box.style.display==="none" ? "block":"none";
-}
+/* Console override */
+(function(){
+const oldLog=console.log;
+console.log=function(...args){
+debug(args.join(" "));
+oldLog.apply(console,args);
+};
+})();
 
-window.onerror=(e)=>log("ERROR: "+e);
-console.log = (m)=>log("LOG: "+m);
+/* Error catcher */
+window.onerror=function(msg,src,line,col,error){
+debug("ERROR: "+msg+" @"+line);
+};
+
+/* Promise error catcher */
+window.onunhandledrejection=function(e){
+debug("PROMISE ERROR: "+e.reason);
+};
+
+/* Service worker status */
+navigator.serviceWorker?.getRegistration().then(reg=>{
+debug("SW: "+(reg?"Registered":"Not Registered"));
+});
+
+/* Notification status */
+debug("Notification: "+Notification.permission);
+
+/* Firebase test */
+setTimeout(()=>{
+try{
+debug("Firebase exists: "+(typeof firebase));
+}catch(e){
+debug("Firebase check failed");
+}
+},2000);
 </script>
+
 <script>
 const today = new Date().toDateString();
 let data = JSON.parse(localStorage.getItem("ariseData")) || {
