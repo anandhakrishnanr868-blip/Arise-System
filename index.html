@@ -59,12 +59,13 @@ font-size:13px;
 font-size:18px;
 color:gold;
 }
-
 </style>
 </head>
 <body>
 
 <h1>ARISE SYSTEM</h1>
+
+<audio id="alarm" src="beep.mp3" preload="auto"></audio>
 
 <div class="panel">
 LEVEL <span id="level">1</span><br>
@@ -86,17 +87,18 @@ FOC <span id="foc">1</span>
 </div>
 
 <script>
-/* ---------- RANK SYSTEM ---------- */
 
-function getRank(l){
-if(l<5)return "E";
-if(l<10)return "D";
-if(l<20)return "C";
-if(l<30)return "B";
-if(l<50)return "A";
-if(l<70)return "S";
-if(l<100)return "SS";
-return "SSS";
+/* ---------- RANK ---------- */
+
+function rank(l){
+if(l<5)return"E";
+if(l<10)return"D";
+if(l<20)return"C";
+if(l<30)return"B";
+if(l<50)return"A";
+if(l<70)return"S";
+if(l<100)return"SS";
+return"SSS";
 }
 
 /* ---------- STORAGE ---------- */
@@ -111,19 +113,20 @@ str:1,
 int:1,
 foc:1,
 quests:[],
-penalty:null
+penalty:null,
+played:{}
 };
 
 function save(){
 localStorage.setItem("arise",JSON.stringify(data));
 }
 
-/* ---------- QUEST GENERATOR ---------- */
+/* ---------- QUESTS ---------- */
 
-function newQuests(){
+function generate(){
 return[
 {name:"Strength Training",stat:"str",time:15,start:0,done:false},
-{name:"Logic / Puzzle",stat:"int",time:20,start:0,done:false},
+{name:"Logic Puzzle",stat:"int",time:20,start:0,done:false},
 {name:"Deep Focus Study",stat:"foc",time:25,start:0,done:false},
 {name:"Skill Building",stat:"int",time:30,start:0,done:false},
 {name:"Strategy Thinking",stat:"foc",time:20,start:0,done:false}
@@ -132,38 +135,33 @@ return[
 
 /* ---------- PENALTY ---------- */
 
-function createPenalty(){
-const list=[
+function penalty(){
+let p=[
 "100 Pushups",
-"Cold Shower Discipline",
-"1 Hour Deep Study",
 "Run 2km",
-"30min Meditation"
+"Cold Shower",
+"1h Study",
+"30m Meditation"
 ];
-return{
-name:list[Math.floor(Math.random()*list.length)],
-done:false
-};
+return{name:p[Math.floor(Math.random()*p.length)],done:false};
 }
 
-/* ---------- DAILY RESET ---------- */
+/* ---------- RESET ---------- */
 
 if(data.date!==today){
 
-let missed=data.quests.some(q=>!q.done);
+let miss=data.quests.some(q=>!q.done);
 
 data.date=today;
-data.quests=newQuests();
+data.quests=generate();
 
-if(missed)
-data.penalty=createPenalty();
-else
-data.penalty=null;
+data.penalty=miss?penalty():null;
+data.played={};
 
 save();
 }
 
-/* ---------- QUEST ACTIONS ---------- */
+/* ---------- ACTIONS ---------- */
 
 window.startQ=i=>{
 data.quests[i].start=Date.now();
@@ -193,14 +191,19 @@ save();
 render();
 };
 
-/* ---------- PENALTY ACTION ---------- */
-
 window.finishPenalty=()=>{
-data.penalty.done=true;
 data.penalty=null;
 save();
 render();
 };
+
+/* ---------- SOUND ---------- */
+
+function playSound(){
+let a=document.getElementById("alarm");
+a.currentTime=0;
+a.play().catch(()=>{});
+}
 
 /* ---------- RENDER ---------- */
 
@@ -208,7 +211,7 @@ function render(){
 
 level.textContent=data.level;
 xp.textContent=data.xp;
-rank.textContent=getRank(data.level);
+rank.textContent=rank(data.level);
 
 str.textContent=data.str;
 int.textContent=data.int;
@@ -225,9 +228,17 @@ let remain="";
 if(q.start && !q.done){
 let r=q.time*60000-(Date.now()-q.start);
 if(r<0)r=0;
+
 let m=Math.floor(r/60000);
 let s=Math.floor((r%60000)/1000);
-remain=`<div class="timer">${m}:${s.toString().padStart(2,"0")} left</div>`;
+
+remain=`<div class="timer">${m}:${s.toString().padStart(2,"0")}</div>`;
+
+if(r===0 && !data.played[i]){
+playSound();
+data.played[i]=true;
+save();
+}
 }
 
 html+=`
@@ -250,19 +261,17 @@ penaltyBox.style.display="block";
 penalty.innerHTML=`
 <div class="quest">
 ${data.penalty.name}<br>
-<button onclick="finishPenalty()">Complete Punishment</button>
+<button onclick="finishPenalty()">Complete</button>
 </div>`;
 }else{
 penaltyBox.style.display="none";
 }
+
 }
 
-/* ---------- TIMER LOOP ---------- */
-
 setInterval(render,1000);
-
 render();
-</script>
 
+</script>
 </body>
 </html>
