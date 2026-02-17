@@ -1,238 +1,268 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>ARISE SYSTEM</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 
 <style>
 body{
 margin:0;
-font-family:monospace;
-background:black;
-color:#7ef9ff;
+background:#000;
+color:#00ffe7;
+font-family:serif;
 text-align:center;
 }
 
-.card{
-margin:20px;
-padding:20px;
-border-radius:14px;
-background:#020617;
-box-shadow:0 0 15px cyan;
+h1{
+margin-top:15px;
+text-shadow:0 0 15px cyan;
+}
+
+.panel{
+margin:15px;
+padding:15px;
+border-radius:16px;
+border:1px solid cyan;
+box-shadow:0 0 15px cyan inset,0 0 15px cyan;
 }
 
 .quest{
-margin:15px;
-padding:15px;
-border-radius:12px;
-background:#000814;
-box-shadow:0 0 15px #00eaff;
+margin:12px;
+padding:14px;
+border-radius:14px;
+border:1px solid lime;
+box-shadow:0 0 10px lime;
 }
 
-.complete{
-background:#001b12;
-color:#00ff9c;
-box-shadow:0 0 20px #00ff9c;
+.done{
+background:#002b26;
+border-color:#00ffb7;
 }
 
 button{
-padding:10px 20px;
 margin:6px;
+padding:8px 18px;
 border:none;
 border-radius:10px;
-background:#00eaff;
+background:cyan;
 font-weight:bold;
+cursor:pointer;
 }
 
-#debug{
-position:fixed;
-bottom:0;
-left:0;
-width:100%;
-max-height:180px;
-overflow:auto;
-background:black;
-color:#00ff9c;
-font-size:12px;
-text-align:left;
-padding:10px;
+.timer{
+color:#fff;
+font-size:13px;
 }
+
+.rank{
+font-size:18px;
+color:gold;
+}
+
 </style>
 </head>
 <body>
 
 <h1>ARISE SYSTEM</h1>
 
-<div class="card">
-LEVEL <span id="level"></span><br>
-XP <span id="xp"></span>/100<br>
-Rank <span id="rank"></span><br>
-Streak <span id="streak"></span>
+<div class="panel">
+LEVEL <span id="level">1</span><br>
+XP <span id="xp">0</span>/100<br>
+Rank <span class="rank" id="rank">E</span><br><br>
+STR <span id="str">1</span> |
+INT <span id="int">1</span> |
+FOC <span id="foc">1</span>
 </div>
 
-<div class="card">
-STR <span id="str"></span> |
-INT <span id="int"></span> |
-FOC <span id="foc"></span>
-</div>
-
-<div class="card">
+<div class="panel">
 <h2>Daily Quests</h2>
 <div id="quests"></div>
 </div>
 
-<div class="card">
-<button id="enableNotif">Enable Notifications</button>
-<div id="token"></div>
+<div class="panel" id="penaltyBox" style="display:none">
+<h2>PUNISHMENT QUEST</h2>
+<div id="penalty"></div>
 </div>
 
-<div id="debug">DEBUG:<br></div>
+<script>
+/* ---------- RANK SYSTEM ---------- */
 
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js";
-
-/* DEBUG */
-function log(t){
-document.getElementById("debug").innerHTML+=t+"<br>";
+function getRank(l){
+if(l<5)return "E";
+if(l<10)return "D";
+if(l<20)return "C";
+if(l<30)return "B";
+if(l<50)return "A";
+if(l<70)return "S";
+if(l<100)return "SS";
+return "SSS";
 }
 
-/* DATA */
-const today = new Date().toDateString();
+/* ---------- STORAGE ---------- */
 
-let data = JSON.parse(localStorage.getItem("arise")) || {
+const today=new Date().toDateString();
+
+let data=JSON.parse(localStorage.getItem("arise"))||{
 date:today,
-level:1,xp:0,str:1,int:1,foc:1,streak:0,quests:[]
+xp:0,
+level:1,
+str:1,
+int:1,
+foc:1,
+quests:[],
+penalty:null
 };
 
-/* RANK */
-function rank(l){
-if(l<5)return"E";
-if(l<10)return"D";
-if(l<20)return"C";
-if(l<30)return"B";
-if(l<40)return"A";
-if(l<50)return"S";
-return"MONARCH";
-}
-
-/* SAVE */
 function save(){
 localStorage.setItem("arise",JSON.stringify(data));
 }
 
-/* GENERATE QUESTS */
-function gen(){
-data.quests=[
-{t:"Workout",s:"str",time:20,start:null,done:false},
-{t:"Brain Training",s:"foc",time:30,start:null,done:false},
-{t:"Learn Skill",s:"int",time:60,start:null,done:false},
-{t:"Strategy Thinking",s:"int",time:40,start:null,done:false},
-{t:"Critical Thinking",s:"foc",time:25,start:null,done:false}
+/* ---------- QUEST GENERATOR ---------- */
+
+function newQuests(){
+return[
+{name:"Strength Training",stat:"str",time:15,start:0,done:false},
+{name:"Logic / Puzzle",stat:"int",time:20,start:0,done:false},
+{name:"Deep Focus Study",stat:"foc",time:25,start:0,done:false},
+{name:"Skill Building",stat:"int",time:30,start:0,done:false},
+{name:"Strategy Thinking",stat:"foc",time:20,start:0,done:false}
 ];
 }
 
-/* DAILY RESET */
+/* ---------- PENALTY ---------- */
+
+function createPenalty(){
+const list=[
+"100 Pushups",
+"Cold Shower Discipline",
+"1 Hour Deep Study",
+"Run 2km",
+"30min Meditation"
+];
+return{
+name:list[Math.floor(Math.random()*list.length)],
+done:false
+};
+}
+
+/* ---------- DAILY RESET ---------- */
+
 if(data.date!==today){
+
+let missed=data.quests.some(q=>!q.done);
+
 data.date=today;
-data.streak++;
-gen();
+data.quests=newQuests();
+
+if(missed)
+data.penalty=createPenalty();
+else
+data.penalty=null;
+
 save();
 }
 
-if(data.quests.length===0) gen();
+/* ---------- QUEST ACTIONS ---------- */
 
-/* START QUEST */
 window.startQ=i=>{
-let q=data.quests[i];
-if(q.done) return;
-q.start=Date.now();
+data.quests[i].start=Date.now();
 save();
 render();
-}
+};
 
-/* COMPLETE */
 window.doneQ=i=>{
 let q=data.quests[i];
-if(!q.start) return alert("Start first");
-let remain=q.time*60000-(Date.now()-q.start);
-if(remain>0) return alert("Time left");
-q.done=true;
-data.xp+=25;
-data[q.s]++;
-if(data.xp>=100){
-data.level++;
-data.xp=0;
-alert("LEVEL UP");
-}
-save();
-render();
+
+if(Date.now()-q.start < q.time*60000){
+alert("Timer not finished");
+return;
 }
 
-/* RENDER */
+q.done=true;
+data.xp+=20;
+data[q.stat]+=1;
+
+if(data.xp>=100){
+data.xp=0;
+data.level++;
+alert("LEVEL UP");
+}
+
+save();
+render();
+};
+
+/* ---------- PENALTY ACTION ---------- */
+
+window.finishPenalty=()=>{
+data.penalty.done=true;
+data.penalty=null;
+save();
+render();
+};
+
+/* ---------- RENDER ---------- */
+
 function render(){
+
 level.textContent=data.level;
 xp.textContent=data.xp;
-rank.textContent=rank(data.level);
-streak.textContent=data.streak;
+rank.textContent=getRank(data.level);
+
 str.textContent=data.str;
 int.textContent=data.int;
 foc.textContent=data.foc;
 
-quests.innerHTML="";
+/* quests */
+
+let html="";
+
 data.quests.forEach((q,i)=>{
+
 let remain="";
-if(q.start&&!q.done){
-let r=Math.max(0,q.time*60000-(Date.now()-q.start));
-remain=`<br>${Math.floor(r/60000)}m ${Math.floor(r%60000/1000)}s`;
+
+if(q.start && !q.done){
+let r=q.time*60000-(Date.now()-q.start);
+if(r<0)r=0;
+let m=Math.floor(r/60000);
+let s=Math.floor((r%60000)/1000);
+remain=`<div class="timer">${m}:${s.toString().padStart(2,"0")} left</div>`;
 }
-quests.innerHTML+=`
-<div class="quest ${q.done?"complete":""}">
-${q.t}${remain}<br>
+
+html+=`
+<div class="quest ${q.done?"done":""}">
+${q.name}
+${remain}
+<br>
 <button onclick="startQ(${i})">Start</button>
 <button onclick="doneQ(${i})">Done</button>
+</div>
+`;
+});
+
+quests.innerHTML=html;
+
+/* penalty */
+
+if(data.penalty){
+penaltyBox.style.display="block";
+penalty.innerHTML=`
+<div class="quest">
+${data.penalty.name}<br>
+<button onclick="finishPenalty()">Complete Punishment</button>
 </div>`;
-});
+}else{
+penaltyBox.style.display="none";
 }
+}
+
+/* ---------- TIMER LOOP ---------- */
+
 setInterval(render,1000);
+
 render();
-
-/* FIREBASE */
-const firebaseConfig={
-apiKey:"AIzaSyB5DS7HM1yLFGwYAFLt8OkqdYKm0RwQlMw",
-authDomain:"arise-system-19b38.firebaseapp.com",
-projectId:"arise-system-19b38",
-storageBucket:"arise-system-19b38.firebasestorage.app",
-messagingSenderId:"782859526063",
-appId:"1:782859526063:web:e6d9f9a282b676eaac995a"
-};
-
-const app=initializeApp(firebaseConfig);
-const messaging=getMessaging(app);
-
-enableNotif.onclick=async()=>{
-try{
-const reg=await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-const perm=await Notification.requestPermission();
-if(perm!=="granted") return alert("Denied");
-
-const token=await getToken(messaging,{
-vapidKey:"BFK2GlcKTpjfxYeb72YJkfoEmOuBtqpoTX8SJEgE0a3HoiUmqqsgxNIo3TJ5Dz89Nu6P8caP23xvGOC0t6z8rPs",
-serviceWorkerRegistration:reg
-});
-
-tokenDiv.textContent=token;
-log("TOKEN OK");
-
-}catch(e){log(e);}
-};
-
-onMessage(messaging,p=>{
-alert(p.notification.title+" - "+p.notification.body);
-});
-
 </script>
+
 </body>
-  </html>
+</html>
