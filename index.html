@@ -2,42 +2,79 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>ARISE SYSTEM - Personal Growth</title>
+<title>ARISE SYSTEM</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Firebase UMD scripts -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"></script>
-
 <style>
-body{margin:0;font-family:'Cinzel', serif;background:radial-gradient(circle,#020202 0%,#000 70%);color:#7ef9ff;text-align:center;letter-spacing:1px;}
-h1{font-size:32px;margin-top:20px;color:#8be9fd;text-shadow:0 0 10px #00f0ff,0 0 20px #00f0ff,0 0 40px #0088ff;}
-.card{margin:20px;padding:20px;border-radius:14px;background:linear-gradient(145deg,#020617,#000814);border:1px solid rgba(0,255,255,0.2);box-shadow:0 0 15px rgba(0,255,255,.15),inset 0 0 25px rgba(0,255,255,.08);position:relative;overflow:hidden;}
-span{color:#b9ffff;font-weight:bold;text-shadow:0 0 8px #00eaff;}
-.quest{margin:14px 0;padding:14px;background:linear-gradient(145deg,#000814,#010d1f);border-radius:12px;border:1px solid rgba(0,255,255,.25);box-shadow:0 0 15px rgba(0,255,255,.15),inset 0 0 10px rgba(0,255,255,.1);transition:.3s;}
-.quest:hover{transform:scale(1.02);box-shadow:0 0 20px #00f0ff,inset 0 0 12px #00f0ff;}
-.complete{background:linear-gradient(145deg,#021b12,#000)!important;border:1px solid #00ff9c!important;box-shadow:0 0 20px #00ff9c!important;color:#00ff9c;}
-button{margin:5px;padding:6px 14px;font-size:14px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(145deg,#00eaff,#0077ff);color:black;font-weight:bold;letter-spacing:1px;box-shadow:0 0 10px #00eaff;transition:.25s;}
-button:hover{transform:scale(1.08);box-shadow:0 0 20px #00eaff,0 0 30px #00eaff;}
-#levelup{position:fixed;top:0;left:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:black;font-size:48px;font-weight:bold;color:#7ef9ff;z-index:999;text-shadow:0 0 20px #00eaff,0 0 40px #00eaff,0 0 80px #00eaff;animation:pulse 1s infinite alternate;}
-@keyframes pulse{from{transform:scale(.95)}to{transform:scale(1.1)}}
-.timer{font-size:14px;color:#ffd;display:block;margin-top:4px;}
+body{
+margin:0;
+font-family:monospace;
+background:black;
+color:#7ef9ff;
+text-align:center;
+}
+
+.card{
+margin:20px;
+padding:20px;
+border-radius:14px;
+background:#020617;
+box-shadow:0 0 15px cyan;
+}
+
+.quest{
+margin:15px;
+padding:15px;
+border-radius:12px;
+background:#000814;
+box-shadow:0 0 15px #00eaff;
+}
+
+.complete{
+background:#001b12;
+color:#00ff9c;
+box-shadow:0 0 20px #00ff9c;
+}
+
+button{
+padding:10px 20px;
+margin:6px;
+border:none;
+border-radius:10px;
+background:#00eaff;
+font-weight:bold;
+}
+
+#debug{
+position:fixed;
+bottom:0;
+left:0;
+width:100%;
+max-height:180px;
+overflow:auto;
+background:black;
+color:#00ff9c;
+font-size:12px;
+text-align:left;
+padding:10px;
+}
 </style>
 </head>
 <body>
 
-<div id="levelup">LEVEL UP</div>
 <h1>ARISE SYSTEM</h1>
 
 <div class="card">
-<h2>LEVEL <span id="level"></span></h2>
+LEVEL <span id="level"></span><br>
 XP <span id="xp"></span>/100<br>
-Rank: <span id="rank"></span><br>
-Streak: <span id="streak"></span>
+Rank <span id="rank"></span><br>
+Streak <span id="streak"></span>
 </div>
 
 <div class="card">
-STR <span id="str"></span> | INT <span id="int"></span> | FOC <span id="foc"></span>
+STR <span id="str"></span> |
+INT <span id="int"></span> |
+FOC <span id="foc"></span>
 </div>
 
 <div class="card">
@@ -46,232 +83,156 @@ STR <span id="str"></span> | INT <span id="int"></span> | FOC <span id="foc"></s
 </div>
 
 <div class="card">
-<h2>Event</h2>
-<div id="event"></div>
+<button id="enableNotif">Enable Notifications</button>
+<div id="token"></div>
 </div>
 
-<!-- Enable Notifications Button -->
-<div class="card">
-<button id="enable-notifications">Enable Notifications & Register SW</button>
-</div>
-<button onclick="toggleDebug()" style="position:fixed;bottom:10px;right:10px;z-index:9999">DEBUG</button>
+<div id="debug">DEBUG:<br></div>
 
-<div id="debugBox" style="
-display:none;
-position:fixed;
-bottom:50px;
-left:5%;
-width:90%;
-height:40%;
-background:black;
-color:lime;
-overflow:auto;
-padding:10px;
-font-size:12px;
-z-index:9999;
-border:1px solid lime;"></div>
-<script>
-function debug(msg){
-  const box=document.getElementById("debugBox");
-  if(box) box.innerHTML += msg+"<br>";
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js";
+
+/* DEBUG */
+function log(t){
+document.getElementById("debug").innerHTML+=t+"<br>";
 }
 
-/* Console override */
-(function(){
-const oldLog=console.log;
-console.log=function(...args){
-debug(args.join(" "));
-oldLog.apply(console,args);
-};
-})();
-
-/* Error catcher */
-window.onerror=function(msg,src,line,col,error){
-debug("ERROR: "+msg+" @"+line);
-};
-
-/* Promise error catcher */
-window.onunhandledrejection=function(e){
-debug("PROMISE ERROR: "+e.reason);
-};
-
-/* Service worker status */
-navigator.serviceWorker?.getRegistration().then(reg=>{
-debug("SW: "+(reg?"Registered":"Not Registered"));
-});
-
-/* Notification status */
-debug("Notification: "+Notification.permission);
-
-/* Firebase test */
-setTimeout(()=>{
-try{
-debug("Firebase exists: "+(typeof firebase));
-}catch(e){
-debug("Firebase check failed");
-}
-},2000);
-</script>
-
-<script>
+/* DATA */
 const today = new Date().toDateString();
-let data = JSON.parse(localStorage.getItem("ariseData")) || {
-    date: today,
-    xp:0, level:1, str:1, int:1, foc:1, streak:0, quests:[]
+
+let data = JSON.parse(localStorage.getItem("arise")) || {
+date:today,
+level:1,xp:0,str:1,int:1,foc:1,streak:0,quests:[]
 };
 
-// Rank system
-function rank(lv){
-    if(lv<5) return "E";
-    if(lv<10) return "D";
-    if(lv<20) return "C";
-    if(lv<30) return "B";
-    if(lv<40) return "A";
-    if(lv<50) return "S";
-    if(lv<75) return "SS";
-    if(lv<100) return "SSS";
-    return "MONARCH";
+/* RANK */
+function rank(l){
+if(l<5)return"E";
+if(l<10)return"D";
+if(l<20)return"C";
+if(l<30)return"B";
+if(l<40)return"A";
+if(l<50)return"S";
+return"MONARCH";
 }
 
-// Save data
-function save(){ localStorage.setItem("ariseData", JSON.stringify(data)); }
-
-// Generate growth-focused quests
-function generateQuests(){
-    data.quests = [
-        {t:"Exercise: Run / Gym / Bodyweight",stat:"str",time:20,startTime:null,started:false,done:false,alarmSet:false},
-        {t:"Mind Training: Chess / Logic / Brain Puzzles",stat:"foc",time:30,startTime:null,started:false,done:false,alarmSet:false},
-        {t:"Skill: Learn New Tech / Build Mini Project",stat:"int",time:60,startTime:null,started:false,done:false,alarmSet:false},
-        {t:"Strategy: Plan & Improve Company Workflow",stat:"int",time:60,startTime:null,started:false,done:false,alarmSet:false},
-        {t:"Memory & Critical Thinking Training",stat:"foc",time:30,startTime:null,started:false,done:false,alarmSet:false}
-    ];
-    if(Math.random()<0.2) data.quests.push({t:"Hidden Quest: Cold Shower + Meditation",stat:"str",time:15,startTime:null,started:false,done:false,alarmSet:false});
-    save();
+/* SAVE */
+function save(){
+localStorage.setItem("arise",JSON.stringify(data));
 }
 
-// Punishment for missed quests
-function addPunishment(){
-    let missed = data.quests.filter(q=>!q.done);
-    if(missed.length>0){
-        data.event = `PUNISHMENT DUNGEON: ${missed.length} missed quests!`;
-        missed.forEach(q=>{
-            data.quests.push({t:"Punishment: Extra Brain & Strength Training",stat:"str",time:20,startTime:null,started:false,done:false,alarmSet:false});
-        });
-        data.streak=0;
-        save();
-        if("Notification" in window && Notification.permission==="granted"){
-            new Notification("Punishment Dungeon Activated!", {body:`You missed ${missed.length} quest(s)`});
-        }
-    }
+/* GENERATE QUESTS */
+function gen(){
+data.quests=[
+{t:"Workout",s:"str",time:20,start:null,done:false},
+{t:"Brain Training",s:"foc",time:30,start:null,done:false},
+{t:"Learn Skill",s:"int",time:60,start:null,done:false},
+{t:"Strategy Thinking",s:"int",time:40,start:null,done:false},
+{t:"Critical Thinking",s:"foc",time:25,start:null,done:false}
+];
 }
 
-// Daily reset
-if(data.date!==today || data.quests.length===0){
-    data.date=today;
-    data.streak++;
-    generateQuests();
+/* DAILY RESET */
+if(data.date!==today){
+data.date=today;
+data.streak++;
+gen();
+save();
 }
 
-// Level up
-function levelUp(){
-    data.level++; data.xp=0;
-    document.getElementById("levelup").style.display="flex";
-    setTimeout(()=>document.getElementById("levelup").style.display="none",2000);
-    alert(`Level ${data.level} reached!`);
-    save(); renderAll();
+if(data.quests.length===0) gen();
+
+/* START QUEST */
+window.startQ=i=>{
+let q=data.quests[i];
+if(q.done) return;
+q.start=Date.now();
+save();
+render();
 }
 
-// Start quest
-function startQuest(i){
-    let q=data.quests[i];
-    if(q.done || q.started) return;
-    q.started=true; q.startTime=Date.now(); q.alarmSet=false;
-    save(); renderAll();
-    if("Notification" in window && Notification.permission==="granted"){
-        new Notification("Quest Started", {body:q.t});
-    }
+/* COMPLETE */
+window.doneQ=i=>{
+let q=data.quests[i];
+if(!q.start) return alert("Start first");
+let remain=q.time*60000-(Date.now()-q.start);
+if(remain>0) return alert("Time left");
+q.done=true;
+data.xp+=25;
+data[q.s]++;
+if(data.xp>=100){
+data.level++;
+data.xp=0;
+alert("LEVEL UP");
+}
+save();
+render();
 }
 
-// Complete quest
-function completeQuest(i){
-    let q=data.quests[i];
-    if(!q.started) return alert("Start the quest first!");
-    let elapsedMS = Date.now()-q.startTime;
-    if(elapsedMS < q.time*60*1000){
-        let remainMin = Math.ceil((q.time*60*1000 - elapsedMS)/60000);
-        return alert(`Quest not finished! ${remainMin} min remaining`);
-    }
-    q.done=true; data.xp+=25; data[q.stat]+=1;
-    if(data.xp>=100) levelUp();
-    save(); renderAll();
-    if("Notification" in window && Notification.permission==="granted"){
-        new Notification("Quest Completed!", {body:q.t});
-    }
+/* RENDER */
+function render(){
+level.textContent=data.level;
+xp.textContent=data.xp;
+rank.textContent=rank(data.level);
+streak.textContent=data.streak;
+str.textContent=data.str;
+int.textContent=data.int;
+foc.textContent=data.foc;
+
+quests.innerHTML="";
+data.quests.forEach((q,i)=>{
+let remain="";
+if(q.start&&!q.done){
+let r=Math.max(0,q.time*60000-(Date.now()-q.start));
+remain=`<br>${Math.floor(r/60000)}m ${Math.floor(r%60000/1000)}s`;
 }
-
-// Render quests
-function renderQuests(){
-    let qhtml="";
-    data.quests.forEach((q,i)=>{
-        let timerText="";
-        let remainingMS=0;
-        if(q.started && !q.done){
-            remainingMS=Math.max(0,q.time*60*1000-(Date.now()-q.startTime));
-            let mins=Math.floor(remainingMS/60000);
-            let secs=Math.floor((remainingMS%60000)/1000);
-            timerText=`<span class="timer">${mins}m ${secs}s remaining</span>`;
-            if(remainingMS<=5*60*1000 && !q.alarmSet){
-                q.alarmSet=true;
-                if("Notification" in window && Notification.permission==="granted"){
-                    new Notification("Quest Ending Soon!", {body:`${q.t} ends in 5 minutes!`});
-                }
-                let audio = new Audio("https://arise-attack.netlify.app/beep.mp3");
-                audio.play();
-            }
-        }
-        qhtml+=`<div class="quest ${q.done?"complete":""}">
-        ${q.t} ${timerText}<br>
-        <button onclick="startQuest(${i})" ${q.done||q.started?"disabled":""}>START</button>
-        <button onclick="completeQuest(${i})" ${q.done||!q.started||remainingMS>0?"disabled":""}>DONE</button>
-        </div>`;
-    });
-    document.getElementById("quests").innerHTML=qhtml;
-}
-
-// Render stats
-function renderAll(){
-    document.getElementById("level").textContent=data.level;
-    document.getElementById("xp").textContent=data.xp;
-    document.getElementById("str").textContent=data.str;
-    document.getElementById("int").textContent=data.int;
-    document.getElementById("foc").textContent=data.foc;
-    document.getElementById("streak").textContent=data.streak;
-    document.getElementById("rank").textContent=rank(data.level);
-    document.getElementById("event").textContent=data.event||"None";
-    renderQuests();
-}
-
-// Update every second
-setInterval(renderAll,1000);
-renderAll();
-
-// Register Service Worker and request FCM token on user click
-document.getElementById("enable-notifications").addEventListener("click", async () => {
-    const permission = await Notification.requestPermission();
-    if(permission!=="granted") return alert("Notifications blocked!");
-    if('serviceWorker' in navigator){
-        try{
-            const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-            console.log("SW registered:", registration.scope);
-            const messaging = firebase.messaging();
-            const token = await messaging.getToken({
-                vapidKey: "BFK2GlcKTpjfxYeb72YJkfoEmOuBtqpoTX8SJEgE0a3HoiUmqqsgxNIo3TJ5Dz89Nu6P8caP23xvGOC0t6z8rPs",
-                serviceWorkerRegistration: registration
-            });
-            console.log("FCM Token:", token);
-        } catch(err){console.error("SW registration failed:", err);}
-    }
+quests.innerHTML+=`
+<div class="quest ${q.done?"complete":""}">
+${q.t}${remain}<br>
+<button onclick="startQ(${i})">Start</button>
+<button onclick="doneQ(${i})">Done</button>
+</div>`;
 });
+}
+setInterval(render,1000);
+render();
+
+/* FIREBASE */
+const firebaseConfig={
+apiKey:"AIzaSyB5DS7HM1yLFGwYAFLt8OkqdYKm0RwQlMw",
+authDomain:"arise-system-19b38.firebaseapp.com",
+projectId:"arise-system-19b38",
+storageBucket:"arise-system-19b38.firebasestorage.app",
+messagingSenderId:"782859526063",
+appId:"1:782859526063:web:e6d9f9a282b676eaac995a"
+};
+
+const app=initializeApp(firebaseConfig);
+const messaging=getMessaging(app);
+
+enableNotif.onclick=async()=>{
+try{
+const reg=await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+const perm=await Notification.requestPermission();
+if(perm!=="granted") return alert("Denied");
+
+const token=await getToken(messaging,{
+vapidKey:"BFK2GlcKTpjfxYeb72YJkfoEmOuBtqpoTX8SJEgE0a3HoiUmqqsgxNIo3TJ5Dz89Nu6P8caP23xvGOC0t6z8rPs",
+serviceWorkerRegistration:reg
+});
+
+tokenDiv.textContent=token;
+log("TOKEN OK");
+
+}catch(e){log(e);}
+};
+
+onMessage(messaging,p=>{
+alert(p.notification.title+" - "+p.notification.body);
+});
+
 </script>
 </body>
-</html>
+  </html>
