@@ -1,75 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>ARISE SYSTEM</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-margin:0;
-font-family:Arial;
-background:#000;
-color:#7ef9ff;
-text-align:center;
-}
-
-h1{margin-top:20px}
-
-.card{
-margin:20px;
-padding:20px;
-border-radius:14px;
-background:#071018;
-border:1px solid #00eaff33;
-}
-
-.quest{
-margin:14px 0;
-padding:14px;
-background:#010c14;
-border-radius:10px;
-border:1px solid #00eaff33;
-}
-
-.complete{
-background:#001a12!important;
-border:1px solid #00ff9c!important;
-color:#00ff9c;
-}
-
-button{
-margin:6px;
-padding:8px 16px;
-border-radius:8px;
-border:none;
-cursor:pointer;
-background:#00eaff;
-font-weight:bold;
-}
-
-.timer{
-font-size:14px;
-color:#fff;
-display:block;
-margin-top:6px;
-}
-
-#levelup{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-display:none;
-align-items:center;
-justify-content:center;
-background:black;
-font-size:50px;
-font-weight:bold;
-color:#00eaff;
-z-index:999;
-}
+body{margin:0;background:#000;color:#7ef9ff;text-align:center;font-family:serif}
+.card{margin:20px;padding:20px;border:1px solid cyan;border-radius:12px}
+.quest{margin:10px;padding:12px;border:1px solid cyan;border-radius:10px}
+.complete{background:#021b12;color:#00ff9c}
+button{margin:3px;padding:6px 14px;border:none;border-radius:8px;background:cyan;font-weight:bold}
+.timer{display:block;font-size:14px;color:#ffd}
+#levelup{position:fixed;top:0;left:0;width:100%;height:100%;display:none;
+align-items:center;justify-content:center;background:black;font-size:50px;color:cyan}
 </style>
 </head>
 <body>
@@ -92,198 +35,171 @@ FOC <span id="foc"></span>
 </div>
 
 <div class="card">
-<h2>Daily Quests</h2>
+<h2>Quests</h2>
 <div id="quests"></div>
 </div>
 
 <div class="card">
-<h2>Event</h2>
-<div id="event"></div>
+Event: <span id="event"></span>
 </div>
 
 <script>
 
-/* ---------- SAVE SYSTEM ---------- */
+const today=new Date().toDateString();
 
-const today = new Date().toDateString()
+let data=JSON.parse(localStorage.getItem("ariseData"))||{
+date:today,xp:0,level:1,str:1,int:1,foc:1,streak:0,
+quests:[],
+event:null,
+specialDone:[]
+};
 
-let data = JSON.parse(localStorage.getItem("arise")) || {
-date:today,
-xp:0,
-level:1,
-str:1,
-int:1,
-foc:1,
-streak:0,
-quests:[]
-}
-
-/* ---------- RANK SYSTEM ---------- */
+function save(){localStorage.setItem("ariseData",JSON.stringify(data));}
 
 function rank(l){
-if(l<5)return"E"
-if(l<10)return"D"
-if(l<20)return"C"
-if(l<30)return"B"
-if(l<40)return"A"
-if(l<50)return"S"
-if(l<75)return"SS"
-if(l<100)return"SSS"
-return"MONARCH"
+if(l<5)return"E";
+if(l<10)return"D";
+if(l<20)return"C";
+if(l<30)return"B";
+if(l<40)return"A";
+if(l<50)return"S";
+if(l<75)return"SS";
+if(l<100)return"SSS";
+return"MONARCH";
 }
 
-function save(){
-localStorage.setItem("arise",JSON.stringify(data))
+// ---------- GENERATE DAILY QUESTS ----------
+function generate(){
+data.quests=[
+{t:"Strength Training",stat:"str",remaining:1200000,started:false,done:false},
+{t:"Brain Training",stat:"foc",remaining:1800000,started:false,done:false},
+{t:"Skill Learning",stat:"int",remaining:3600000,started:false,done:false},
+{t:"Strategy Thinking",stat:"int",remaining:2400000,started:false,done:false},
+{t:"Problem Solving",stat:"foc",remaining:1500000,started:false,done:false}
+];
+data.event=null;
 }
 
-/* ---------- QUEST GENERATOR ---------- */
-
-function generateQuests(){
-data.quests = [
-{t:"Strength Training",stat:"str",time:20,start:0,started:false,done:false},
-{t:"Brain Training",stat:"foc",time:30,start:0,started:false,done:false},
-{t:"Learn New Skill",stat:"int",time:60,start:0,started:false,done:false},
-{t:"Critical Thinking Tasks",stat:"foc",time:45,start:0,started:false,done:false},
-{t:"Strategy Planning",stat:"int",time:40,start:0,started:false,done:false}
-]
-
-// hidden quest chance
-if(Math.random()<0.3){
-data.quests.push({t:"Hidden Quest: Cold Shower + Meditation",stat:"str",time:15,start:0,started:false,done:false})
-}
-
-save()
-}
-
-/* ---------- DAILY RESET ---------- */
-
-if(data.date!==today){
-
-let missed=data.quests.filter(q=>!q.done).length
-
-if(missed>0){
-data.event="PUNISHMENT: "+missed+" missed quests!"
-for(let i=0;i<missed;i++){
+// ---------- PENALTY ----------
+function penalty(){
+let missed=data.quests.filter(q=>!q.done);
+if(missed.length>0){
+data.event="⚠ PUNISHMENT DUNGEON";
+missed.forEach((q,i)=>{
 data.quests.push({
-t:"Punishment Training",
+t:"Penalty Training "+(i+1),
 stat:"str",
-time:20,
-start:0,
+remaining:1500000,
 started:false,
 done:false
-})
+});
+});
+data.streak=0;
 }
-data.streak=0
-}else{
-data.streak++
-data.event="Perfect Day"
 }
 
-data.date=today
-generateQuests()
+// ---------- SPECIAL QUESTS ----------
+const specialLevels=[5,10,25,50,75,100];
+
+function specialQuest(){
+if(specialLevels.includes(data.level) && !data.specialDone.includes(data.level)){
+
+data.specialDone.push(data.level);
+
+data.quests.push({
+t:"⭐ SURPRISE QUEST — Elite Trial",
+stat:"int",
+remaining:1800000,
+started:false,
+done:false
+});
+
+data.event="🔥 SPECIAL QUEST UNLOCKED!";
+}
 }
 
-/* first launch fix */
-if(!data.quests || data.quests.length===0){
-generateQuests()
+// ---------- NEW DAY ----------
+if(data.date!==today){
+penalty();
+data.date=today;
+data.streak++;
+generate();
 }
 
-/* ---------- LEVEL UP ---------- */
+if(data.quests.length===0) generate();
 
+// ---------- LEVEL UP ----------
 function levelUp(){
-data.level++
-data.xp=0
+data.level++;
+data.xp=0;
 
-document.getElementById("levelup").style.display="flex"
-setTimeout(()=>document.getElementById("levelup").style.display="none",2000)
+document.getElementById("levelup").style.display="flex";
+setTimeout(()=>levelup.style.display="none",2000);
 
-save()
+specialQuest();
+save();
 }
 
-/* ---------- START QUEST ---------- */
-
-function startQuest(i){
-let q=data.quests[i]
-if(q.started||q.done)return
-
-q.started=true
-q.start=Date.now()
-save()
-render()
-}
-
-/* ---------- COMPLETE QUEST ---------- */
-
-function completeQuest(i){
-let q=data.quests[i]
-if(!q.started)return alert("Start quest first")
-
-let elapsed = Date.now()-q.start
-if(elapsed < q.time*60000){
-return alert("Not finished yet")
-}
-
-q.done=true
-data.xp+=25
-data[q.stat]++
-
-if(data.xp>=100) levelUp()
-
-save()
-render()
-}
-
-/* ---------- RENDER QUESTS ---------- */
-
-function renderQuests(){
-let html=""
-
-data.quests.forEach((q,i)=>{
-
-let remain=0
-let timer=""
-
+// ---------- TIMER ----------
+setInterval(()=>{
+data.quests.forEach(q=>{
 if(q.started && !q.done){
-remain=Math.max(0,q.time*60000-(Date.now()-q.start))
-let m=Math.floor(remain/60000)
-let s=Math.floor((remain%60000)/1000)
-timer=`<span class="timer">${m}m ${s}s remaining</span>`
+q.remaining-=1000;
+if(q.remaining<0)q.remaining=0;
+}
+});
+save();
+render();
+},1000);
+
+// ---------- CONTROLS ----------
+function start(i){let q=data.quests[i];if(!q.done)q.started=true;}
+function pause(i){data.quests[i].started=false;}
+
+function done(i){
+let q=data.quests[i];
+if(q.remaining>0){alert("Timer not finished");return;}
+q.done=true;q.started=false;
+
+data.xp+=25;
+data[q.stat]+=1;
+
+if(data.xp>=100)levelUp();
+
+save();
 }
 
-html+=`
-<div class="quest ${q.done?"complete":""}">
+// ---------- RENDER ----------
+function renderQuests(){
+let h="";
+data.quests.forEach((q,i)=>{
+let m=Math.floor(q.remaining/60000);
+let s=Math.floor((q.remaining%60000)/1000);
+
+h+=`<div class="quest ${q.done?"complete":""}">
 ${q.t}
-${timer}
-<br>
-<button onclick="startQuest(${i})" ${q.started||q.done?"disabled":""}>START</button>
-<button onclick="completeQuest(${i})" ${!q.started||remain>0||q.done?"disabled":""}>DONE</button>
-</div>`
-})
-
-document.getElementById("quests").innerHTML=html
+<span class="timer">${m}m ${s}s</span>
+<button onclick="start(${i})"${q.started||q.done?"disabled":""}>START</button>
+<button onclick="pause(${i})"${!q.started||q.done?"disabled":""}>PAUSE</button>
+<button onclick="done(${i})"${q.remaining>0||q.done?"disabled":""}>DONE</button>
+</div>`;
+});
+quests.innerHTML=h;
 }
-
-/* ---------- MAIN RENDER ---------- */
 
 function render(){
-
-document.getElementById("level").textContent=data.level
-document.getElementById("xp").textContent=data.xp
-document.getElementById("rank").textContent=rank(data.level)
-document.getElementById("str").textContent=data.str
-document.getElementById("int").textContent=data.int
-document.getElementById("foc").textContent=data.foc
-document.getElementById("streak").textContent=data.streak
-document.getElementById("event").textContent=data.event||"None"
-
-renderQuests()
+level.textContent=data.level;
+xp.textContent=data.xp;
+str.textContent=data.str;
+int.textContent=data.int;
+foc.textContent=data.foc;
+streak.textContent=data.streak;
+rank.textContent=rank(data.level);
+event.textContent=data.event||"None";
+renderQuests();
 }
 
-/* refresh timers every second */
-setInterval(render,1000)
-
-render()
-
+render();
 </script>
 </body>
 </html>
