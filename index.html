@@ -1,151 +1,253 @@
-<!DOCTYPE html><html>
+<!DOCTYPE html>
+<html>
 <head>
-<meta charset="UTF-8">
-<title>Arise System</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARISE SYSTEM</title>
+
 <style>
 body{
-background:#071015;
+background:#02131a;
 color:#00f7ff;
 font-family:monospace;
-padding:20px;
 text-align:center;
+padding:20px;
 }
 .box{
 border:2px solid #00f7ff;
 border-radius:20px;
 padding:20px;
-margin:20px auto;
-width:90%;
-max-width:500px;
+margin:20px 0;
+box-shadow:0 0 20px #00f7ff44;
 }
 button{
 background:#00f7ff;
 border:none;
 padding:10px 20px;
-margin:10px;
 border-radius:10px;
+margin:5px;
 font-weight:bold;
-cursor:pointer;
 }
+input{
+padding:10px;
+border-radius:10px;
+border:none;
+}
+h1{letter-spacing:3px;}
 </style>
 </head>
-<body><h1>⚔ ARISE SYSTEM</h1><div class="box" id="stats"></div>
-<div class="box" id="attributes"></div><div class="box">
-<h3>Daily Quest</h3>
-<button onclick="completeQuest()">Complete Quest (+50 XP)</button>
-<button onclick="failQuest()">Fail Quest (-25 XP)</button>
-</div><div class="box">
-<h3>Timer</h3>
-<input type="number" id="minutes" placeholder="minutes">
-<br><br>
-<button onclick="startTimer()">Start Timer</button>
-</div><div class="box">
-<h3>Notifications</h3>
-<button onclick="enableNotifications()">Enable Notifications</button>
-</div><script>
+<body>
 
-let stats = JSON.parse(localStorage.getItem("ariseStats")) || {
-level:1,
+<h1>⚔ ARISE SYSTEM</h1>
+
+<div class="box" id="info"></div>
+<div class="box" id="stats"></div>
+
+<div class="box">
+<h3>Daily Quest</h3>
+<div id="dailyStatus"></div>
+<button onclick="completeQuest()">Complete (+50 XP)</button>
+<button onclick="failQuest()">Fail (-25 XP)</button>
+</div>
+
+<div class="box">
+<h3>Timer Quest</h3>
+<input id="minutes" placeholder="minutes">
+<br><br>
+<button onclick="startTimer()">Start</button>
+<button onclick="pauseTimer()">Pause</button>
+<button onclick="resumeTimer()">Resume</button>
+<button onclick="doneQuest()">Done</button>
+<div id="timer"></div>
+</div>
+
+<div class="box">
+<h3>Notifications</h3>
+<button onclick="enableNotif()">Enable Notifications</button>
+</div>
+
+<script>
+/* ================= DATA ================= */
+
+let data = JSON.parse(localStorage.getItem("arise")) || {
 xp:0,
-streak:0,
-rank:"E",
+level:1,
 str:0,
 int:0,
-foc:0
+foc:0,
+streak:0,
+lastDaily:null,
+penalty:false,
+timerEnd:null,
+paused:false,
+remaining:0
 };
 
-let timerEnd = localStorage.getItem("timerEnd") || null;
+/* ================= SAVE ================= */
 
 function save(){
-localStorage.setItem("ariseStats",JSON.stringify(stats));
+localStorage.setItem("arise",JSON.stringify(data));
 }
 
-function updateRank(){
-if(stats.level<5) stats.rank="E";
-else if(stats.level<10) stats.rank="D";
-else if(stats.level<20) stats.rank="C";
-else if(stats.level<35) stats.rank="B";
-else if(stats.level<50) stats.rank="A";
-else stats.rank="S";
+/* ================= RANK ================= */
+
+function rank(){
+let xp=data.xp;
+if(xp<10)return "E";
+if(xp<35)return "D";
+if(xp<50)return "C";
+if(xp<75)return "B";
+if(xp<100)return "A";
+return "S";
 }
 
-function updateUI(){
-document.getElementById("stats").textContent =
-`Level: ${stats.level} | XP: ${stats.xp} | Rank: ${stats.rank} | Streak: ${stats.streak}`;
+/* ================= LEVEL ================= */
 
-document.getElementById("attributes").textContent =
-`STR ${stats.str} | INT ${stats.int} | FOC ${stats.foc}`;
+function checkLevel(){
+let need=data.level*100;
+while(data.xp>=need){
+data.xp-=need;
+data.level++;
+alert("LEVEL UP!");
+need=data.level*100;
+}
 }
 
-function addXP(amount){
-stats.xp+=amount;
+/* ================= DAILY RESET ================= */
 
-while(stats.xp>=stats.level*100){
-stats.xp-=stats.level*100;
-stats.level++;
-stats.str+=2;
-stats.int+=2;
-stats.foc+=2;
+function checkDaily(){
+let today=new Date().toDateString();
+if(data.lastDaily!==today){
+if(data.lastDaily!==null){
+data.penalty=true;
 }
-
-if(stats.xp<0) stats.xp=0;
-
-updateRank();
-save();
-updateUI();
+data.lastDaily=today;
 }
+}
+checkDaily();
+
+/* ================= UI ================= */
+
+function render(){
+
+document.getElementById("info").innerHTML=
+`Level: ${data.level} | XP: ${data.xp} | Rank: ${rank()} | Streak: ${data.streak}`;
+
+document.getElementById("stats").innerHTML=
+`STR ${data.str} | INT ${data.int} | FOC ${data.foc}`;
+
+document.getElementById("dailyStatus").innerHTML=
+data.penalty?"⚠ Missed yesterday quest!":"Daily ready";
+}
+render();
+
+/* ================= DAILY ================= */
 
 function completeQuest(){
-stats.streak++;
-addXP(50);
-notify("Quest Completed","+50 XP gained");
+data.xp+=50;
+data.str+=2;
+data.int+=2;
+data.foc+=2;
+data.streak++;
+data.penalty=false;
+checkLevel();
+save();
+render();
 }
 
 function failQuest(){
-stats.streak=0;
-addXP(-25);
-notify("Quest Failed","-25 XP penalty");
+data.xp-=25;
+data.streak=0;
+save();
+render();
 }
 
-function enableNotifications(){
-Notification.requestPermission().then(p=>{
-alert(p==="granted"?"Notifications enabled":"Permission denied");
-});
-}
+/* ================= TIMER ================= */
 
-function notify(title,msg){
-if(Notification.permission==="granted")
-new Notification(title,{body:msg});
-}
+let interval=null;
 
 function startTimer(){
-let m = document.getElementById("minutes").value;
-if(!m) return alert("Enter minutes");
+let m=document.getElementById("minutes").value;
+if(!m)return;
 
-let end = Date.now()+m*60000;
-localStorage.setItem("timerEnd",end);
-checkTimer();
+let end=Date.now()+m*60000;
+data.timerEnd=end;
+data.paused=false;
+save();
+runTimer();
 }
 
-function checkTimer(){
-let end = localStorage.getItem("timerEnd");
-if(!end) return;
-
-let interval = setInterval(()=>{
-let diff=end-Date.now();
-
-if(diff<=0){
+function runTimer(){
 clearInterval(interval);
-localStorage.removeItem("timerEnd");
-notify("Timer Finished","Time is up!");
+
+interval=setInterval(()=>{
+
+if(data.paused)return;
+
+let left=data.timerEnd-Date.now();
+
+if(left<=0){
+clearInterval(interval);
+document.getElementById("timer").innerHTML="DONE!";
+notify("Quest finished!");
+return;
 }
+
+let s=Math.floor(left/1000);
+let min=Math.floor(s/60);
+let sec=s%60;
+document.getElementById("timer").innerHTML=`${min}:${sec<10?"0":""}${sec}`;
 
 },1000);
 }
 
-updateRank();
-updateUI();
-checkTimer();
+function pauseTimer(){
+if(!data.timerEnd)return;
+data.remaining=data.timerEnd-Date.now();
+data.paused=true;
+save();
+}
 
-</script></body>
+function resumeTimer(){
+if(!data.remaining)return;
+data.timerEnd=Date.now()+data.remaining;
+data.paused=false;
+save();
+runTimer();
+}
+
+function doneQuest(){
+if(Date.now()<data.timerEnd){
+alert("Timer not finished");
+return;
+}
+data.xp+=30;
+data.int+=3;
+checkLevel();
+data.timerEnd=null;
+save();
+render();
+document.getElementById("timer").innerHTML="";
+}
+
+/* resume timer after refresh */
+if(data.timerEnd){
+runTimer();
+}
+
+/* ================= NOTIFICATIONS ================= */
+
+function enableNotif(){
+Notification.requestPermission().then(p=>{
+alert(p==="granted"?"Enabled":"Denied");
+});
+}
+
+function notify(text){
+if(Notification.permission==="granted"){
+new Notification(text);
+}
+}
+
+</script>
+</body>
 </html>
