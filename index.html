@@ -2,31 +2,35 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Arise System</title>
+
+<!-- SOLO LEVELING STYLE FONT -->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+
+<title>ARISE SYSTEM</title>
 
 <style>
 body{
-background:#000;
+background:black;
 color:#00fff7;
-font-family:cursive;
+font-family:'Orbitron',sans-serif;
 text-align:center;
 }
 
 .box{
 border:2px solid #00fff7;
 border-radius:20px;
-padding:20px;
 margin:20px;
+padding:20px;
 box-shadow:0 0 20px #00fff7;
 }
 
 button{
-padding:10px 15px;
 margin:5px;
+padding:8px 15px;
 border:none;
 border-radius:10px;
 background:#00fff7;
-color:#000;
+color:black;
 font-weight:bold;
 }
 
@@ -35,12 +39,15 @@ position:fixed;
 top:40%;
 left:50%;
 transform:translate(-50%,-50%) scale(0);
-font-size:40px;
+font-size:45px;
 color:gold;
 transition:.4s;
-pointer-events:none;
 }
 
+.stat{
+margin:5px;
+font-size:18px;
+}
 </style>
 </head>
 <body>
@@ -48,13 +55,21 @@ pointer-events:none;
 <h1>ARISE SYSTEM</h1>
 
 <h2 id="rank"></h2>
-<h3>Level <span id="level">1</span> | XP <span id="xp">0</span></h3>
+<h3>Level <span id="level"></span> | XP <span id="xp"></span></h3>
 
-<button id="notifyBtn">Enable Notifications</button>
+<div class="box">
+<h3>STATS</h3>
+<div class="stat">STR ⚔ <span id="str"></span></div>
+<div class="stat">INT 🧠 <span id="int"></span></div>
+<div class="stat">FOC 🎯 <span id="foc"></span></div>
+<div class="stat">Streak 🔥 <span id="streak"></span></div>
+</div>
+
+<button onclick="enableNotify()">Enable Notifications</button>
 
 <div class="box">
 <h2>Daily Quests</h2>
-<div id="quests"></div>
+<div id="daily"></div>
 </div>
 
 <div class="box">
@@ -63,126 +78,150 @@ pointer-events:none;
 </div>
 
 <div class="box">
-<h2>Penalties</h2>
-<div id="penalties"></div>
+<h2>Penalty Quests</h2>
+<div id="penalty"></div>
 </div>
 
 <div id="levelUp">LEVEL UP!</div>
 
 <script>
 
-// ================= DATA =================
+// ================= SAVE DATA =================
 
-const dailyQuests={
-"Exercise":{time:120,xp:20},
-"Deep Thinking":{time:180,xp:30},
-"Learn Skill":{time:300,xp:50}
+let data=JSON.parse(localStorage.arise||"{}");
+
+if(!data.level){
+data={
+level:1,xp:0,str:0,int:0,foc:0,
+streak:0,lastDay:null,
+missed:false
+};
+}
+
+// ================= QUEST LIST =================
+
+const daily={
+"Exercise":{time:120,xp:20,stat:"str"},
+"Deep Thinking":{time:180,xp:30,stat:"foc"},
+"Learn Skill":{time:300,xp:50,stat:"int"},
+"Strategy Thinking":{time:240,xp:40,stat:"int"},
+"Problem Solving":{time:180,xp:30,stat:"foc"}
 };
 
-const specialQuests={
-"Meditate 10min":{time:600,xp:100,unlock:2},
-"Cold Shower":{time:60,xp:80,unlock:3},
-"Read 20 pages":{time:900,xp:120,unlock:4}
+const special={
+"Meditate":{time:600,xp:120,stat:"foc",unlock:3},
+"Read Book":{time:900,xp:150,stat:"int",unlock:5},
+"Workout+":{time:300,xp:100,stat:"str",unlock:7}
 };
 
-const ranks=[
-"Novice",
-"Hunter",
-"Elite",
-"Shadow",
-"Monarch"
-];
+const penalty={
+"Extra Pushups":{time:120,xp:0,stat:"str"},
+"Focus Training":{time:180,xp:0,stat:"foc"}
+};
 
-// ================= SAVE =================
+// ================= RANK SYSTEM =================
 
-let level=Number(localStorage.level)||1;
-let xp=Number(localStorage.xp)||0;
-let missed=Number(localStorage.missed)||0;
+function rank(){
+let l=data.level;
+if(l<10)return"E Rank";
+if(l<35)return"D Rank";
+if(l<50)return"C Rank";
+if(l<75)return"B Rank";
+if(l<100)return"A Rank";
+return"S Rank";
+}
 
-// ================= UI UPDATE =================
+// ================= UI =================
 
 function updateUI(){
-document.getElementById("level").innerText=level;
-document.getElementById("xp").innerText=xp;
-document.getElementById("rank").innerText=ranks[Math.min(level-1,ranks.length-1)];
-localStorage.level=level;
-localStorage.xp=xp;
+level.textContent=data.level;
+xp.textContent=data.xp;
+rank.innerText=rank();
+
+str.textContent=data.str;
+int.textContent=data.int;
+foc.textContent=data.foc;
+streak.textContent=data.streak;
+
+localStorage.arise=JSON.stringify(data);
 }
 
 // ================= XP SYSTEM =================
 
-function gainXP(amount){
-xp+=amount;
+function gainXP(x){
+data.xp+=x;
 
-let need=level*100;
+let need=data.level*100;
 
-if(xp>=need){
-xp-=need;
-level++;
-showLevelUp();
-notify("Level Up!");
+if(data.xp>=need){
+data.xp-=need;
+data.level++;
+levelAnim();
+notify("LEVEL UP!");
 }
 
 updateUI();
 }
 
-function showLevelUp(){
-let el=document.getElementById("levelUp");
-el.style.transform="translate(-50%,-50%) scale(1.5)";
-setTimeout(()=>el.style.transform="translate(-50%,-50%) scale(0)",900);
+function levelAnim(){
+levelUp.style.transform="translate(-50%,-50%) scale(1.4)";
+setTimeout(()=>levelUp.style.transform="translate(-50%,-50%) scale(0)",900);
 }
 
 // ================= QUEST ENGINE =================
 
-function createQuest(name,data,parent){
+function makeQuest(name,obj,parent){
 
-const div=document.createElement("div");
+let div=document.createElement("div");
 
-const title=document.createElement("h3");
-title.innerText=name+" (+"+data.xp+"xp)";
+let title=document.createElement("h4");
+title.innerText=name+" (+"+obj.xp+"xp)";
 
-const timer=document.createElement("p");
-timer.innerText=format(data.time);
+let time=obj.time;
+let timer=document.createElement("p");
+timer.innerText=format(time);
 
-let remaining=data.time;
-let interval=null;
+let inter=null;
 
-const start=document.createElement("button");
+let start=document.createElement("button");
 start.innerText="Start";
 
-const pause=document.createElement("button");
+let pause=document.createElement("button");
 pause.innerText="Pause";
 
-const done=document.createElement("button");
+let done=document.createElement("button");
 done.innerText="Done";
 
 start.onclick=()=>{
-if(interval)return;
+if(inter)return;
+inter=setInterval(()=>{
+time--;
+timer.innerText=format(time);
 
-interval=setInterval(()=>{
-remaining--;
-timer.innerText=format(remaining);
-
-if(remaining<=0){
-clearInterval(interval);
-interval=null;
-gainXP(data.xp);
-notify(name+" completed");
-div.remove();
+if(time<=0){
+clearInterval(inter);
+complete();
 }
 },1000);
 };
 
 pause.onclick=()=>{
-clearInterval(interval);
-interval=null;
+clearInterval(inter);
+inter=null;
 };
 
-done.onclick=()=>{
-clearInterval(interval);
-gainXP(data.xp);
+done.onclick=complete;
+
+function complete(){
+clearInterval(inter);
+
+gainXP(obj.xp);
+
+if(obj.stat)data[obj.stat]+=1;
+
 div.remove();
-};
+checkFinish();
+}
 
 div.append(title,timer,start,pause,done);
 parent.appendChild(div);
@@ -191,56 +230,64 @@ parent.appendChild(div);
 // ================= LOAD QUESTS =================
 
 function loadDaily(){
-let box=document.getElementById("quests");
-box.innerHTML="";
-for(let q in dailyQuests){
-createQuest(q,dailyQuests[q],box);
-}
+dailyDiv.innerHTML="";
+for(let q in daily)
+makeQuest(q,daily[q],dailyDiv);
 }
 
 function loadSpecial(){
-let box=document.getElementById("special");
-box.innerHTML="";
-for(let q in specialQuests){
-if(level>=specialQuests[q].unlock)
-createQuest(q,specialQuests[q],box);
-}
+specialDiv.innerHTML="";
+for(let q in special)
+if(data.level>=special[q].unlock)
+makeQuest(q,special[q],specialDiv);
 }
 
-loadDaily();
-loadSpecial();
-updateUI();
+function loadPenalty(){
+penaltyDiv.innerHTML="";
+if(!data.missed)return;
 
-// ================= PENALTY SYSTEM =================
+for(let q in penalty)
+makeQuest(q,penalty[q],penaltyDiv);
+}
 
-function checkMiss(){
+// ================= DAY CHECK =================
+
+function checkDay(){
+
 let today=new Date().toDateString();
 
-if(localStorage.lastDay!==today){
-missed++;
-localStorage.missed=missed;
-localStorage.lastDay=today;
+if(data.lastDay!=today){
+
+if(dailyDiv.children.length>0){
+data.missed=true;
+data.streak=0;
+}else{
+data.missed=false;
+data.streak++;
 }
 
-let p=document.getElementById("penalties");
-p.innerHTML="Missed Days: "+missed;
+data.lastDay=today;
 }
 
-checkMiss();
+}
+
+function checkFinish(){
+if(dailyDiv.children.length==0)
+data.missed=false;
+}
 
 // ================= NOTIFICATION =================
 
-document.getElementById("notifyBtn").onclick=async()=>{
-if(Notification.permission!=="granted")
-await Notification.requestPermission();
-alert("Notifications Enabled");
-};
+function enableNotify(){
+Notification.requestPermission();
+}
 
 function notify(msg){
-if(Notification.permission==="granted"){
-new Notification("Arise System",{body:msg});
+if(Notification.permission==="granted")
+new Notification("ARISE",{body:msg});
 }
-}
+
+// ================= TIME FORMAT =================
 
 function format(s){
 let m=Math.floor(s/60);
@@ -248,7 +295,18 @@ let sec=s%60;
 return m+":"+String(sec).padStart(2,"0");
 }
 
-</script>
+// ================= INIT =================
 
+const dailyDiv=document.getElementById("daily");
+const specialDiv=document.getElementById("special");
+const penaltyDiv=document.getElementById("penalty");
+
+checkDay();
+loadDaily();
+loadSpecial();
+loadPenalty();
+updateUI();
+
+</script>
 </body>
 </html>
