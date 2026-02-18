@@ -1,122 +1,254 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Arise System</title>
+
 <style>
 body{
-  margin:0;
-  font-family:Segoe UI, sans-serif;
-  background:#000;
-  color:#00ffe7;
-  text-align:center;
+background:#000;
+color:#00fff7;
+font-family:cursive;
+text-align:center;
 }
-.card{
-  border:2px solid #00ffe7;
-  margin:15px;
-  padding:15px;
-  border-radius:15px;
-  box-shadow:0 0 15px #00ffe7;
+
+.box{
+border:2px solid #00fff7;
+border-radius:20px;
+padding:20px;
+margin:20px;
+box-shadow:0 0 20px #00fff7;
 }
+
 button{
-  margin:5px;
-  padding:8px 14px;
-  border:none;
-  border-radius:8px;
-  background:#00ffe7;
-  color:#000;
-  font-weight:bold;
+padding:10px 15px;
+margin:5px;
+border:none;
+border-radius:10px;
+background:#00fff7;
+color:#000;
+font-weight:bold;
 }
-.quest{border-bottom:1px solid #00ffe7;padding:10px}
-.timer{font-size:18px;margin:5px}
-.levelup{
- position:fixed;
- top:40%;
- left:50%;
- transform:translate(-50%,-50%) scale(0);
- background:#000;
- border:3px solid #00ffe7;
- padding:30px;
- font-size:28px;
- box-shadow:0 0 25px #00ffe7;
- transition:.4s;
+
+#levelUp{
+position:fixed;
+top:40%;
+left:50%;
+transform:translate(-50%,-50%) scale(0);
+font-size:40px;
+color:gold;
+transition:.4s;
+pointer-events:none;
 }
-.show{transform:translate(-50%,-50%) scale(1)}
+
 </style>
 </head>
 <body>
+
 <h1>ARISE SYSTEM</h1>
-<div class="card" id="stats"></div>
-<button onclick="enableNotif()">Enable Notifications</button>
-<div class="card">
+
+<h2 id="rank"></h2>
+<h3>Level <span id="level">1</span> | XP <span id="xp">0</span></h3>
+
+<button id="notifyBtn">Enable Notifications</button>
+
+<div class="box">
 <h2>Daily Quests</h2>
-<div id="daily"></div>
+<div id="quests"></div>
 </div>
-<div class="card">
+
+<div class="box">
 <h2>Special Quests</h2>
 <div id="special"></div>
 </div>
-<div class="card">
+
+<div class="box">
 <h2>Penalties</h2>
-<div id="penalty"></div>
+<div id="penalties"></div>
 </div>
-<div id="lvlup" class="levelup">LEVEL UP!</div>
-<audio id="beep" src="beep.mp3"></audio>
+
+<div id="levelUp">LEVEL UP!</div>
+
 <script>
-const DATA_KEY="ariseData";
-const today=()=>new Date().toDateString();const baseQuests={ "Exercise":1200, "Deep Thinking":1800, "Learn Skill":3600, "Strategy Thinking":2400, "Problem Solving":1800 };
 
-let data=JSON.parse(localStorage.getItem(DATA_KEY))||{ level:1,xp:0,rank:"E",streak:0, lastDay:null, daily:{}, penalties:[], specialDone:[] };
+// ================= DATA =================
 
-function save(){localStorage.setItem(DATA_KEY,JSON.stringify(data));}
+const dailyQuests={
+"Exercise":{time:120,xp:20},
+"Deep Thinking":{time:180,xp:30},
+"Learn Skill":{time:300,xp:50}
+};
 
-function rankCalc(){ let xp=data.xp; if(xp<10)data.rank="E"; else if(xp<35)data.rank="D"; else if(xp<50)data.rank="C"; else if(xp<75)data.rank="B"; else if(xp<100)data.rank="A"; else data.rank="S"; }
+const specialQuests={
+"Meditate 10min":{time:600,xp:100,unlock:2},
+"Cold Shower":{time:60,xp:80,unlock:3},
+"Read 20 pages":{time:900,xp:120,unlock:4}
+};
 
-function newDayCheck(){ if(data.lastDay!==today()){ if(data.lastDay!==null){ for(let q in data.daily){ if(!data.daily[q].done) data.penalties.push("Missed "+q); } }
+const ranks=[
+"Novice",
+"Hunter",
+"Elite",
+"Shadow",
+"Monarch"
+];
 
-data.daily={}; for(let q in baseQuests){ data.daily[q]={time:baseQuests[q],left:baseQuests[q],running:false,done:false}; }
+// ================= SAVE =================
 
-data.lastDay=today(); save(); } }
+let level=Number(localStorage.level)||1;
+let xp=Number(localStorage.xp)||0;
+let missed=Number(localStorage.missed)||0;
 
-newDayCheck(); rankCalc();
+// ================= UI UPDATE =================
 
-function stats(){ document.getElementById("stats").innerHTML= Level ${data.level}<br>XP ${data.xp}<br>Rank ${data.rank}<br>Streak ${data.streak}; }
+function updateUI(){
+document.getElementById("level").innerText=level;
+document.getElementById("xp").innerText=xp;
+document.getElementById("rank").innerText=ranks[Math.min(level-1,ranks.length-1)];
+localStorage.level=level;
+localStorage.xp=xp;
+}
 
-function format(s){ let m=Math.floor(s/60); let ss=s%60; return m+":"+(ss<10?"0":"")+ss; }
+// ================= XP SYSTEM =================
 
-function notify(t){ if(Notification.permission==="granted") new Notification(t); }
+function gainXP(amount){
+xp+=amount;
 
-function enableNotif(){ Notification.requestPermission(); }
+let need=level*100;
 
-function levelUp(){ data.level++; data.xp=0; data.streak++; document.getElementById("beep").play(); let box=document.getElementById("lvlup"); box.classList.add("show"); setTimeout(()=>box.classList.remove("show"),2000); }
+if(xp>=need){
+xp-=need;
+level++;
+showLevelUp();
+notify("Level Up!");
+}
 
-function checkSpecial(){ let lv=data.level; let s=document.getElementById("special"); s.innerHTML=""; [30,40,60,80].forEach(l=>{ if(lv>=l && !data.specialDone.includes(l)){ let div=document.createElement("div"); div.className="quest"; div.innerHTML=Special Quest L${l} <button onclick="completeSpecial(${l})">Complete</button>; s.appendChild(div); } }); }
+updateUI();
+}
 
-function completeSpecial(l){ data.specialDone.push(l); data.xp+=20; save(); render(); }
+function showLevelUp(){
+let el=document.getElementById("levelUp");
+el.style.transform="translate(-50%,-50%) scale(1.5)";
+setTimeout(()=>el.style.transform="translate(-50%,-50%) scale(0)",900);
+}
 
-function renderDaily(){ let d=document.getElementById("daily"); d.innerHTML=""; for(let q in data.daily){ let obj=data.daily[q]; let div=document.createElement("div"); div.className="quest";
+// ================= QUEST ENGINE =================
 
-div.innerHTML=`<b>${q}</b>
+function createQuest(name,data,parent){
 
-<div class='timer'>${format(obj.left)}</div>
-<button onclick="startQ('${q}')">Start</button>
-<button onclick="pauseQ('${q}')">Pause</button>
-<button onclick="resumeQ('${q}')">Resume</button>
-<button onclick="doneQ('${q}')">Done</button>`;d.appendChild(div); } }
+const div=document.createElement("div");
 
-function renderPenalty(){ let p=document.getElementById("penalty"); p.innerHTML=""; data.penalties.forEach(txt=>{ let d=document.createElement("div"); d.className="quest"; d.textContent=txt; p.appendChild(d); }); }
+const title=document.createElement("h3");
+title.innerText=name+" (+"+data.xp+"xp)";
 
-function tick(){ for(let q in data.daily){ let obj=data.daily[q]; if(obj.running && obj.left>0){ obj.left--; if(obj.left===0){ obj.running=false; notify(q+" finished"); } } } save(); renderDaily(); } setInterval(tick,1000);
+const timer=document.createElement("p");
+timer.innerText=format(data.time);
 
-function startQ(q){ let o=data.daily[q]; if(!o.done){o.running=true;notify("Started "+q);}save();}
+let remaining=data.time;
+let interval=null;
 
-function pauseQ(q){data.daily[q].running=false;save();} function resumeQ(q){if(!data.daily[q].done)data.daily[q].running=true;save();}
+const start=document.createElement("button");
+start.innerText="Start";
 
-function doneQ(q){ let o=data.daily[q]; if(!o.done){ o.done=true; o.running=false; data.xp+=10; notify(q+" completed"); if(data.xp>=100)levelUp(); } save(); render(); }
+const pause=document.createElement("button");
+pause.innerText="Pause";
 
-function render(){ rankCalc(); stats(); renderDaily(); renderPenalty(); checkSpecial(); }
+const done=document.createElement("button");
+done.innerText="Done";
 
-render(); </script>
+start.onclick=()=>{
+if(interval)return;
+
+interval=setInterval(()=>{
+remaining--;
+timer.innerText=format(remaining);
+
+if(remaining<=0){
+clearInterval(interval);
+interval=null;
+gainXP(data.xp);
+notify(name+" completed");
+div.remove();
+}
+},1000);
+};
+
+pause.onclick=()=>{
+clearInterval(interval);
+interval=null;
+};
+
+done.onclick=()=>{
+clearInterval(interval);
+gainXP(data.xp);
+div.remove();
+};
+
+div.append(title,timer,start,pause,done);
+parent.appendChild(div);
+}
+
+// ================= LOAD QUESTS =================
+
+function loadDaily(){
+let box=document.getElementById("quests");
+box.innerHTML="";
+for(let q in dailyQuests){
+createQuest(q,dailyQuests[q],box);
+}
+}
+
+function loadSpecial(){
+let box=document.getElementById("special");
+box.innerHTML="";
+for(let q in specialQuests){
+if(level>=specialQuests[q].unlock)
+createQuest(q,specialQuests[q],box);
+}
+}
+
+loadDaily();
+loadSpecial();
+updateUI();
+
+// ================= PENALTY SYSTEM =================
+
+function checkMiss(){
+let today=new Date().toDateString();
+
+if(localStorage.lastDay!==today){
+missed++;
+localStorage.missed=missed;
+localStorage.lastDay=today;
+}
+
+let p=document.getElementById("penalties");
+p.innerHTML="Missed Days: "+missed;
+}
+
+checkMiss();
+
+// ================= NOTIFICATION =================
+
+document.getElementById("notifyBtn").onclick=async()=>{
+if(Notification.permission!=="granted")
+await Notification.requestPermission();
+alert("Notifications Enabled");
+};
+
+function notify(msg){
+if(Notification.permission==="granted"){
+new Notification("Arise System",{body:msg});
+}
+}
+
+function format(s){
+let m=Math.floor(s/60);
+let sec=s%60;
+return m+":"+String(sec).padStart(2,"0");
+}
+
+</script>
 
 </body>
-  </html>
+</html>
