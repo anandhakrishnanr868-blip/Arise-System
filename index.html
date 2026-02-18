@@ -1,323 +1,122 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>ARISE SYSTEM</title>
-
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Arise System</title>
 <style>
 body{
-background:black;
-color:#00ffe1;
-font-family:Segoe UI;
-text-align:center;
-padding:10px;
+  margin:0;
+  font-family:Segoe UI, sans-serif;
+  background:#000;
+  color:#00ffe7;
+  text-align:center;
 }
-
 .card{
-border:2px solid #00ffe1;
-box-shadow:0 0 15px #00ffe1;
-border-radius:20px;
-padding:15px;
-margin:15px auto;
-width:90%;
-max-width:500px;
+  border:2px solid #00ffe7;
+  margin:15px;
+  padding:15px;
+  border-radius:15px;
+  box-shadow:0 0 15px #00ffe7;
 }
-
 button{
-background:#00ffe1;
-border:none;
-padding:8px 15px;
-margin:5px;
-border-radius:10px;
-font-weight:bold;
+  margin:5px;
+  padding:8px 14px;
+  border:none;
+  border-radius:8px;
+  background:#00ffe7;
+  color:#000;
+  font-weight:bold;
 }
-
-.quest{
-border:1px solid #00ffe1;
-margin:10px;
-padding:10px;
-border-radius:15px;
-box-shadow:0 0 10px #00ffe1 inset;
-}
-
+.quest{border-bottom:1px solid #00ffe7;padding:10px}
+.timer{font-size:18px;margin:5px}
 .levelup{
-animation:flash 1s infinite alternate;
+ position:fixed;
+ top:40%;
+ left:50%;
+ transform:translate(-50%,-50%) scale(0);
+ background:#000;
+ border:3px solid #00ffe7;
+ padding:30px;
+ font-size:28px;
+ box-shadow:0 0 25px #00ffe7;
+ transition:.4s;
 }
-
-@keyframes flash{
-from{box-shadow:0 0 10px #00ffe1;}
-to{box-shadow:0 0 30px #00ffe1;}
-}
+.show{transform:translate(-50%,-50%) scale(1)}
 </style>
 </head>
-
 <body>
-
 <h1>ARISE SYSTEM</h1>
-
-<div class="card" id="playerBox">
-<div id="level"></div>
-<div id="stats"></div>
-</div>
-
-<button onclick="enableNotifications()">Enable Reminders</button>
-
+<div class="card" id="stats"></div>
+<button onclick="enableNotif()">Enable Notifications</button>
 <div class="card">
 <h2>Daily Quests</h2>
-<div id="quests"></div>
+<div id="daily"></div>
 </div>
-
+<div class="card">
+<h2>Special Quests</h2>
+<div id="special"></div>
+</div>
+<div class="card">
+<h2>Penalties</h2>
+<div id="penalty"></div>
+</div>
+<div id="lvlup" class="levelup">LEVEL UP!</div>
 <audio id="beep" src="beep.mp3"></audio>
-
 <script>
-/* =========================
-SAVE DATA
-========================= */
-let data = JSON.parse(localStorage.getItem("arise"));
+const DATA_KEY="ariseData";
+const today=()=>new Date().toDateString();const baseQuests={ "Exercise":1200, "Deep Thinking":1800, "Learn Skill":3600, "Strategy Thinking":2400, "Problem Solving":1800 };
 
-if(!data){
-data={
-level:1,
-xp:0,
-rank:"E",
-streak:1,
-stats:{str:0,int:0,foc:0},
-quests:{},
-lastDate:null,
-penalty:false
-};
-}
+let data=JSON.parse(localStorage.getItem(DATA_KEY))||{ level:1,xp:0,rank:"E",streak:0, lastDay:null, daily:{}, penalties:[], specialDone:[] };
 
-/* =========================
-QUEST LIST
-========================= */
-const QUESTS={
-"Exercise":{time:1200,stat:"str"},
-"Deep Thinking":{time:1800,stat:"foc"},
-"Learn Skill":{time:3600,stat:"int"},
-"Strategy Thinking":{time:2400,stat:"int"},
-"Problem Solving":{time:1800,stat:"foc"}
-};
+function save(){localStorage.setItem(DATA_KEY,JSON.stringify(data));}
 
-const PENALTY={
-"Penalty Run":{time:900,stat:"str"},
-"Cold Shower Discipline":{time:300,stat:"foc"},
-"Extra Study":{time:1200,stat:"int"}
-};
+function rankCalc(){ let xp=data.xp; if(xp<10)data.rank="E"; else if(xp<35)data.rank="D"; else if(xp<50)data.rank="C"; else if(xp<75)data.rank="B"; else if(xp<100)data.rank="A"; else data.rank="S"; }
 
-/* =========================
-DATE RESET CHECK
-========================= */
-let today=new Date().toDateString();
+function newDayCheck(){ if(data.lastDay!==today()){ if(data.lastDay!==null){ for(let q in data.daily){ if(!data.daily[q].done) data.penalties.push("Missed "+q); } }
 
-if(data.lastDate!==today){
+data.daily={}; for(let q in baseQuests){ data.daily[q]={time:baseQuests[q],left:baseQuests[q],running:false,done:false}; }
 
-if(data.lastDate!==null){
-for(let q in QUESTS){
-if(!data.quests[q] || !data.quests[q].done){
-data.penalty=true;
-}
-}
-}
+data.lastDay=today(); save(); } }
 
-data.quests={};
-data.lastDate=today;
-save();
-}
+newDayCheck(); rankCalc();
 
-/* =========================
-SAVE FUNCTION
-========================= */
-function save(){
-localStorage.setItem("arise",JSON.stringify(data));
-}
+function stats(){ document.getElementById("stats").innerHTML= Level ${data.level}<br>XP ${data.xp}<br>Rank ${data.rank}<br>Streak ${data.streak}; }
 
-/* =========================
-RANK SYSTEM
-========================= */
-function rankCheck(){
-if(data.level>=50)data.rank="S";
-else if(data.level>=40)data.rank="A";
-else if(data.level>=30)data.rank="B";
-else if(data.level>=20)data.rank="C";
-else if(data.level>=10)data.rank="D";
-else data.rank="E";
-}
+function format(s){ let m=Math.floor(s/60); let ss=s%60; return m+":"+(ss<10?"0":"")+ss; }
 
-/* =========================
-LEVEL UP
-========================= */
-function gainXP(x){
-data.xp+=x;
+function notify(t){ if(Notification.permission==="granted") new Notification(t); }
 
-if(data.xp>=100){
-data.xp=0;
-data.level++;
-document.getElementById("playerBox").classList.add("levelup");
-setTimeout(()=>document.getElementById("playerBox").classList.remove("levelup"),1500);
-}
+function enableNotif(){ Notification.requestPermission(); }
 
-rankCheck();
-save();
-renderPlayer();
-}
+function levelUp(){ data.level++; data.xp=0; data.streak++; document.getElementById("beep").play(); let box=document.getElementById("lvlup"); box.classList.add("show"); setTimeout(()=>box.classList.remove("show"),2000); }
 
-/* =========================
-PLAYER UI
-========================= */
-function renderPlayer(){
-level.innerHTML=`LEVEL ${data.level}<br>XP ${data.xp}/100<br>Rank ${data.rank}<br>Streak ${data.streak}`;
-stats.innerHTML=`STR ${data.stats.str} | INT ${data.stats.int} | FOC ${data.stats.foc}`;
-}
+function checkSpecial(){ let lv=data.level; let s=document.getElementById("special"); s.innerHTML=""; [30,40,60,80].forEach(l=>{ if(lv>=l && !data.specialDone.includes(l)){ let div=document.createElement("div"); div.className="quest"; div.innerHTML=Special Quest L${l} <button onclick="completeSpecial(${l})">Complete</button>; s.appendChild(div); } }); }
 
-/* =========================
-TIMER FORMAT
-========================= */
-function fmt(s){
-let m=Math.floor(s/60);
-let sec=s%60;
-return m+":"+(sec<10?"0":"")+sec;
-}
+function completeSpecial(l){ data.specialDone.push(l); data.xp+=20; save(); render(); }
 
-/* =========================
-QUEST RENDER
-========================= */
-function renderQuests(){
+function renderDaily(){ let d=document.getElementById("daily"); d.innerHTML=""; for(let q in data.daily){ let obj=data.daily[q]; let div=document.createElement("div"); div.className="quest";
 
-let box=document.getElementById("quests");
-box.innerHTML="";
+div.innerHTML=`<b>${q}</b>
 
-let list=data.penalty?PENALTY:QUESTS;
+<div class='timer'>${format(obj.left)}</div>
+<button onclick="startQ('${q}')">Start</button>
+<button onclick="pauseQ('${q}')">Pause</button>
+<button onclick="resumeQ('${q}')">Resume</button>
+<button onclick="doneQ('${q}')">Done</button>`;d.appendChild(div); } }
 
-for(let name in list){
+function renderPenalty(){ let p=document.getElementById("penalty"); p.innerHTML=""; data.penalties.forEach(txt=>{ let d=document.createElement("div"); d.className="quest"; d.textContent=txt; p.appendChild(d); }); }
 
-if(!data.quests[name]){
-data.quests[name]={
-time:list[name].time,
-remain:list[name].time,
-running:false,
-done:false
-};
-}
+function tick(){ for(let q in data.daily){ let obj=data.daily[q]; if(obj.running && obj.left>0){ obj.left--; if(obj.left===0){ obj.running=false; notify(q+" finished"); } } } save(); renderDaily(); } setInterval(tick,1000);
 
-let q=data.quests[name];
+function startQ(q){ let o=data.daily[q]; if(!o.done){o.running=true;notify("Started "+q);}save();}
 
-let div=document.createElement("div");
-div.className="quest";
+function pauseQ(q){data.daily[q].running=false;save();} function resumeQ(q){if(!data.daily[q].done)data.daily[q].running=true;save();}
 
-div.innerHTML=`
-<b>${name}</b><br>
-Time: <span id="t${name}">${fmt(q.remain)}</span><br>
-<button onclick="startQuest('${name}')">Start</button>
-<button onclick="pauseQuest('${name}')">Pause</button>
-<button onclick="doneQuest('${name}')">Done</button>
-`;
+function doneQ(q){ let o=data.daily[q]; if(!o.done){ o.done=true; o.running=false; data.xp+=10; notify(q+" completed"); if(data.xp>=100)levelUp(); } save(); render(); }
 
-box.appendChild(div);
+function render(){ rankCalc(); stats(); renderDaily(); renderPenalty(); checkSpecial(); }
 
-if(q.running){
-startTimer(name);
-}
-}
-}
-
-/* =========================
-TIMER ENGINE
-========================= */
-function startQuest(name){
-let q=data.quests[name];
-if(q.running || q.done)return;
-q.running=true;
-startTimer(name);
-save();
-}
-
-function startTimer(name){
-let q=data.quests[name];
-
-q.interval=setInterval(()=>{
-if(!q.running)return;
-
-q.remain--;
-document.getElementById("t"+name).textContent=fmt(q.remain);
-
-if(q.remain===10){
-beep.play();
-notify(name+" ending soon!");
-}
-
-if(q.remain<=0){
-clearInterval(q.interval);
-doneQuest(name);
-}
-save();
-},1000);
-}
-
-function pauseQuest(name){
-let q=data.quests[name];
-q.running=false;
-clearInterval(q.interval);
-save();
-}
-
-function doneQuest(name){
-let q=data.quests[name];
-if(q.done)return;
-
-q.done=true;
-q.running=false;
-clearInterval(q.interval);
-
-let stat=(data.penalty?PENALTY:QUESTS)[name].stat;
-data.stats[stat]+=2;
-
-gainXP(20);
-
-beep.play();
-notify(name+" completed!");
-
-checkAllDone();
-save();
-renderPlayer();
-}
-
-/* =========================
-CHECK ALL COMPLETE
-========================= */
-function checkAllDone(){
-let list=data.penalty?PENALTY:QUESTS;
-
-for(let q in list){
-if(!data.quests[q].done)return;
-}
-
-data.penalty=false;
-data.streak++;
-data.quests={};
-save();
-setTimeout(renderQuests,500);
-}
-
-/* =========================
-NOTIFICATIONS
-========================= */
-function enableNotifications(){
-Notification.requestPermission();
-}
-
-function notify(text){
-if(Notification.permission==="granted"){
-new Notification(text);
-}
-}
-
-/* =========================
-INIT
-========================= */
-renderPlayer();
-renderQuests();
-</script>
+render(); </script>
 
 </body>
-</html>
+  </html>
