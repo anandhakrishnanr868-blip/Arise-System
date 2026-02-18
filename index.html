@@ -1,205 +1,218 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ARISE SYSTEM</title>
 
 <style>
-body{margin:0;background:#000;color:#7ef9ff;text-align:center;font-family:serif}
-.card{margin:20px;padding:20px;border:1px solid cyan;border-radius:12px}
-.quest{margin:10px;padding:12px;border:1px solid cyan;border-radius:10px}
-.complete{background:#021b12;color:#00ff9c}
-button{margin:3px;padding:6px 14px;border:none;border-radius:8px;background:cyan;font-weight:bold}
-.timer{display:block;font-size:14px;color:#ffd}
-#levelup{position:fixed;top:0;left:0;width:100%;height:100%;display:none;
-align-items:center;justify-content:center;background:black;font-size:50px;color:cyan}
+body{
+background:#000;
+color:#00ffe1;
+font-family:monospace;
+text-align:center;
+padding:15px;
+}
+
+.card{
+border:1px solid #00ffe1;
+border-radius:10px;
+padding:15px;
+margin:12px 0;
+box-shadow:0 0 10px #00ffe1;
+}
+
+button{
+margin:3px;
+padding:6px 12px;
+border:none;
+border-radius:6px;
+background:#00ffe1;
+font-weight:bold;
+}
+
+.quest{
+border:1px solid #00ffe1;
+margin:10px;
+padding:10px;
+border-radius:8px;
+}
+
+.timer{
+color:#00ff88;
+font-size:14px;
+}
 </style>
 </head>
 <body>
 
-<div id="levelup">LEVEL UP</div>
-
 <h1>ARISE SYSTEM</h1>
 
 <div class="card">
-LEVEL <span id="level"></span><br>
-XP <span id="xp"></span>/100<br>
-Rank <span id="rank"></span><br>
-Streak <span id="streak"></span>
+<div id="stats"></div>
 </div>
 
 <div class="card">
-STR <span id="str"></span> |
-INT <span id="int"></span> |
-FOC <span id="foc"></span>
+<h2>Daily Quests</h2>
+<div id="daily"></div>
 </div>
 
 <div class="card">
-<h2>Quests</h2>
-<div id="quests"></div>
+<h2>Penalty Quests</h2>
+<div id="penalty"></div>
 </div>
 
 <div class="card">
-Event: <span id="event"></span>
+<h2>Surprise Quests</h2>
+<div id="surprise"></div>
 </div>
+
+<audio id="beep" src="beep.mp3"></audio>
 
 <script>
+/* ========= SAFE SAVE SYSTEM ========= */
+const SAVE_KEY="ariseSave";
 
-const today=new Date().toDateString();
-
-let data=JSON.parse(localStorage.getItem("ariseData"))||{
-date:today,xp:0,level:1,str:1,int:1,foc:1,streak:0,
-quests:[],
-event:null,
-specialDone:[]
-};
-
-function save(){localStorage.setItem("ariseData",JSON.stringify(data));}
-
-function rank(l){
-if(l<5)return"E";
-if(l<10)return"D";
-if(l<20)return"C";
-if(l<30)return"B";
-if(l<40)return"A";
-if(l<50)return"S";
-if(l<75)return"SS";
-if(l<100)return"SSS";
-return"MONARCH";
+function load(){
+return JSON.parse(
+localStorage.getItem("ariseSave")
+|| localStorage.getItem("ariseData")
+|| localStorage.getItem("playerData")
+|| null
+) || {
+level:1,xp:0,streak:0,str:1,int:1,foc:1,quests:{}
+}
 }
 
-// ---------- GENERATE DAILY QUESTS ----------
-function generate(){
-data.quests=[
-{t:"Strength Training",stat:"str",remaining:1200000,started:false,done:false},
-{t:"Brain Training",stat:"foc",remaining:1800000,started:false,done:false},
-{t:"Skill Learning",stat:"int",remaining:3600000,started:false,done:false},
-{t:"Strategy Thinking",stat:"int",remaining:2400000,started:false,done:false},
-{t:"Problem Solving",stat:"foc",remaining:1500000,started:false,done:false}
+function save(){
+localStorage.setItem(SAVE_KEY,JSON.stringify(data));
+}
+
+let data=load();
+
+/* ========= QUEST DATA ========= */
+const dailyQuests=[
+{id:"run",name:"Exercise",time:60,xp:20},
+{id:"mind",name:"Mind Training",time:45,xp:15},
+{id:"skill",name:"Learn Skill",time:90,xp:30}
 ];
-data.event=null;
+
+const penaltyQuests=[
+{id:"push",name:"50 Pushups",time:15,xp:10},
+{id:"clean",name:"Clean Room",time:20,xp:12}
+];
+
+const surpriseQuests=[
+{level:3,name:"Cold Shower",time:5,xp:20},
+{level:5,name:"No Phone 2h",time:120,xp:40},
+{level:7,name:"Wake at 5AM",time:1,xp:60}
+];
+
+/* ========= RENDER ========= */
+function renderStats(){
+stats.innerHTML=
+`LEVEL ${data.level}<br>
+XP ${data.xp}/100<br>
+STR ${data.str} | INT ${data.int} | FOC ${data.foc}`
 }
 
-// ---------- PENALTY ----------
-function penalty(){
-let missed=data.quests.filter(q=>!q.done);
-if(missed.length>0){
-data.event="⚠ PUNISHMENT DUNGEON";
-missed.forEach((q,i)=>{
-data.quests.push({
-t:"Penalty Training "+(i+1),
-stat:"str",
-remaining:1500000,
-started:false,
-done:false
-});
-});
-data.streak=0;
-}
-}
+function createQuest(q,type){
+let state=data.quests[q.id]||{running:false,time:q.time*60};
 
-// ---------- SPECIAL QUESTS ----------
-const specialLevels=[5,10,25,50,75,100];
+let div=document.createElement("div");
+div.className="quest";
 
-function specialQuest(){
-if(specialLevels.includes(data.level) && !data.specialDone.includes(data.level)){
+div.innerHTML=`
+<b>${q.name}</b><br>
+<span class="timer" id="t-${q.id}">${format(state.time)}</span><br>
+<button onclick="start('${q.id}',${q.time})">Start</button>
+<button onclick="pause('${q.id}')">Pause</button>
+<button onclick="resume('${q.id}')">Resume</button>
+<button onclick="done('${q.id}',${q.xp})">Done</button>
+`;
 
-data.specialDone.push(data.level);
-
-data.quests.push({
-t:"⭐ SURPRISE QUEST — Elite Trial",
-stat:"int",
-remaining:1800000,
-started:false,
-done:false
-});
-
-data.event="🔥 SPECIAL QUEST UNLOCKED!";
-}
-}
-
-// ---------- NEW DAY ----------
-if(data.date!==today){
-penalty();
-data.date=today;
-data.streak++;
-generate();
-}
-
-if(data.quests.length===0) generate();
-
-// ---------- LEVEL UP ----------
-function levelUp(){
-data.level++;
-data.xp=0;
-
-document.getElementById("levelup").style.display="flex";
-setTimeout(()=>levelup.style.display="none",2000);
-
-specialQuest();
-save();
-}
-
-// ---------- TIMER ----------
-setInterval(()=>{
-data.quests.forEach(q=>{
-if(q.started && !q.done){
-q.remaining-=1000;
-if(q.remaining<0)q.remaining=0;
-}
-});
-save();
-render();
-},1000);
-
-// ---------- CONTROLS ----------
-function start(i){let q=data.quests[i];if(!q.done)q.started=true;}
-function pause(i){data.quests[i].started=false;}
-
-function done(i){
-let q=data.quests[i];
-if(q.remaining>0){alert("Timer not finished");return;}
-q.done=true;q.started=false;
-
-data.xp+=25;
-data[q.stat]+=1;
-
-if(data.xp>=100)levelUp();
-
-save();
-}
-
-// ---------- RENDER ----------
-function renderQuests(){
-let h="";
-data.quests.forEach((q,i)=>{
-let m=Math.floor(q.remaining/60000);
-let s=Math.floor((q.remaining%60000)/1000);
-
-h+=`<div class="quest ${q.done?"complete":""}">
-${q.t}
-<span class="timer">${m}m ${s}s</span>
-<button onclick="start(${i})"${q.started||q.done?"disabled":""}>START</button>
-<button onclick="pause(${i})"${!q.started||q.done?"disabled":""}>PAUSE</button>
-<button onclick="done(${i})"${q.remaining>0||q.done?"disabled":""}>DONE</button>
-</div>`;
-});
-quests.innerHTML=h;
+return div;
 }
 
 function render(){
-level.textContent=data.level;
-xp.textContent=data.xp;
-str.textContent=data.str;
-int.textContent=data.int;
-foc.textContent=data.foc;
-streak.textContent=data.streak;
-rank.textContent=rank(data.level);
-event.textContent=data.event||"None";
-renderQuests();
+daily.innerHTML="";
+penalty.innerHTML="";
+surprise.innerHTML="";
+
+dailyQuests.forEach(q=>daily.appendChild(createQuest(q,"daily")));
+penaltyQuests.forEach(q=>penalty.appendChild(createQuest(q,"pen")));
+
+surpriseQuests.forEach(q=>{
+if(data.level>=q.level){
+surprise.appendChild(createQuest(q,"sur"))
+}
+})
+
+renderStats();
 }
 
+/* ========= TIMER SYSTEM ========= */
+function format(s){
+let m=Math.floor(s/60);
+let sec=s%60;
+return m+":"+(sec<10?"0"+sec:sec);
+}
+
+function tick(){
+for(let id in data.quests){
+let q=data.quests[id];
+if(q.running && q.time>0){
+q.time--;
+document.getElementById("t-"+id).innerText=format(q.time);
+}
+}
+save();
+}
+setInterval(tick,1000);
+
+/* ========= CONTROLS ========= */
+function start(id,time){
+data.quests[id]={running:true,time:time*60};
+save();
+render();
+}
+
+function pause(id){
+if(data.quests[id]) data.quests[id].running=false;
+save();
+}
+
+function resume(id){
+if(data.quests[id]) data.quests[id].running=true;
+save();
+}
+
+function done(id,xp){
+document.getElementById("beep").play();
+
+data.xp+=xp;
+data.quests[id]={running:false,time:0};
+
+if(data.xp>=100){
+data.xp-=100;
+data.level++;
+data.str++;
+data.int++;
+data.foc++;
+alert("LEVEL UP");
+}
+
+save();
+render();
+}
+
+/* ========= AUTO SAVE BACKUP ========= */
+setInterval(()=>{
+localStorage.setItem("ariseBackup",JSON.stringify(data))
+},5000);
+
+/* ========= INIT ========= */
 render();
 </script>
+
 </body>
 </html>
