@@ -116,8 +116,8 @@ StrategyThinking:"Strategy Thinking",
 ProblemSolving:"Problem Solving"
 };
 
-/* RANK */
-function rank(){
+/* RANK FIX */
+function getRank(){
 let x=data.lvl;
 if(x<10)return"E";
 if(x<35)return"D";
@@ -274,27 +274,27 @@ ${q && !q.done?`<button onclick="done('${name}','${stat}')">Done</button>`:""}
 /* RENDER */
 function render(){
 
-lvl.innerText=data.lvl;
-xp.innerText=data.xp;
-rank.innerText=rank();
-streak.innerText=data.streak;
-str.innerText=data.str;
-int.innerText=data.int;
-foc.innerText=data.foc;
+document.getElementById("lvl").innerText=data.lvl;
+document.getElementById("xp").innerText=data.xp;
+document.getElementById("rank").innerText=getRank();
+document.getElementById("streak").innerText=data.streak;
+document.getElementById("str").innerText=data.str;
+document.getElementById("int").innerText=data.int;
+document.getElementById("foc").innerText=data.foc;
 
 /* DAILY */
 let html="";
 for(let q in QUESTS){
 html+=card(q,QUESTS[q].time,QUESTS[q].stat,false);
 }
-daily.innerHTML=html;
+document.getElementById("daily").innerHTML=html;
 
 /* PENALTY */
 let phtml="";
 data.penalty.forEach(q=>{
 phtml+=card(q,QUESTS[q].time,QUESTS[q].stat,true);
 });
-penalty.innerHTML=phtml;
+document.getElementById("penalty").innerHTML=phtml;
 }
 
 /* LEVEL UP FX */
