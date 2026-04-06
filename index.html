@@ -139,6 +139,26 @@ button:active { transform: scale(0.96); }
     font-size: 0.9em;
 }
 .stat-card b { display: block; margin-top: 8px; font-size: 1.6em; color:#00eaff; text-shadow: 0 0 5px rgba(0,234,255,0.5); }
+.stat-card .score-val { display:block; font-size:0.75em; color:#ffd700; margin-top:4px; text-shadow:0 0 5px rgba(255,215,0,0.4); }
+
+.total-score-box {
+    background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(0,234,255,0.05));
+    border: 1px solid rgba(255,215,0,0.3);
+    border-radius: 10px; padding: 12px; margin-top: 15px;
+    text-align: center;
+}
+.total-score-label { font-size:0.85em; color:#aab; letter-spacing:2px; }
+.total-score-num { font-size:2.2em; font-weight:900; color:#ffd700; text-shadow:0 0 15px rgba(255,215,0,0.6); margin-top:4px; }
+.combo-badge { display:inline-block; background:rgba(255,50,50,0.15); border:1px solid rgba(255,100,50,0.4); color:#ff7a3a; padding:4px 12px; border-radius:20px; font-size:0.8em; font-weight:bold; margin-top:8px; }
+
+.points-popup {
+    position:fixed; top:40%; left:50%; transform:translate(-50%,-50%);
+    z-index:9998; pointer-events:none; text-align:center;
+    animation: pointsFloat 1.8s ease-out forwards;
+}
+.points-popup .pts-main { font-size:2.5em; font-weight:900; color:#ffd700; text-shadow:0 0 20px rgba(255,215,0,0.8); }
+.points-popup .pts-detail { font-size:1em; color:#00eaff; margin-top:5px; text-shadow:0 0 10px rgba(0,234,255,0.6); }
+@keyframes pointsFloat { 0%{opacity:1;transform:translate(-50%,-50%) scale(0.5);} 30%{opacity:1;transform:translate(-50%,-60%) scale(1.1);} 100%{opacity:0;transform:translate(-50%,-120%) scale(0.8);} }
 
 .tab-content { display: none; }
 .tab-content.active { display: block; animation: fadeIn 0.4s ease-out; }
@@ -218,9 +238,14 @@ button:active { transform: scale(0.96); }
     <div style="font-size:0.9em; color:#aab;">⚔ DAILY STREAK: <b id="streak" style="color:#fff; font-size:1.2em;"></b> DAYS</div>
 
     <div class="grid-stats">
-        <div class="stat-card">STR<br><b id="str"></b></div>
-        <div class="stat-card">INT<br><b id="int"></b></div>
-        <div class="stat-card">FOC<br><b id="foc"></b></div>
+        <div class="stat-card">STR<br><b id="str"></b><span class="score-val" id="str-score">0 pts</span></div>
+        <div class="stat-card">INT<br><b id="int"></b><span class="score-val" id="int-score">0 pts</span></div>
+        <div class="stat-card">FOC<br><b id="foc"></b><span class="score-val" id="foc-score">0 pts</span></div>
+    </div>
+    <div class="total-score-box">
+        <div class="total-score-label">TOTAL SCORE</div>
+        <div class="total-score-num" id="total-score">0</div>
+        <div id="combo-display"></div>
     </div>
 </div>
 
@@ -330,7 +355,10 @@ data={
     allQuests:data.allQuests,
     names:data.names,
     employeeQuests:data.employeeQuests,
-    warriorQuests:data.warriorQuests
+    warriorQuests:data.warriorQuests,
+    scores:data.scores||{str:0,int:0,foc:0,total:0},
+    combo:data.combo||0,
+    lastQuestTime:data.lastQuestTime||0
 };
 
 /* Data Migration For Dynamic Quests */
@@ -445,24 +473,66 @@ function done(name, statStr){
     let stats = statStr.split(",");
     stats.forEach(s => { data[s.trim()]+=1; });
 
+    // Combo system: completing within 5 mins of last quest
+    let now = Date.now();
+    if(data.lastQuestTime && (now - data.lastQuestTime) < 300000) {
+        data.combo = Math.min(data.combo + 1, 5);
+    } else {
+        data.combo = 1;
+    }
+    data.lastQuestTime = now;
+
+    // Calculate points: base 100 + combo bonus + time bonus
+    let questTime = data.allQuests[name] ? data.allQuests[name].time : 0;
+    let timeBonus = Math.floor(questTime / 60); // 1pt per minute
+    let comboMultiplier = data.combo;
+    let basePoints = 100;
+    let totalPts = (basePoints + timeBonus) * comboMultiplier;
+
+    // Award points to each stat section
+    let ptsPerStat = Math.floor(totalPts / stats.length);
+    let pointDetails = [];
+    stats.forEach(s => {
+        let key = s.trim();
+        data.scores[key] += ptsPerStat;
+        pointDetails.push("+" + ptsPerStat + " " + key.toUpperCase());
+    });
+    data.scores.total += totalPts;
+
+    // Show points popup
+    showPointsPopup(totalPts, pointDetails, comboMultiplier);
+
     let maxXp = data.lvl * 20;
     if(data.xp >= maxXp){
         data.xp = data.xp - maxXp; 
         data.lvl++; levelUpAnim();
     }
 
-    data.penalty = data.penalty.filter(p => p !== name); // clear from penalty
+    data.penalty = data.penalty.filter(p => p !== name);
 
     // Save to History
     let dateStr = new Date().toISOString().split('T')[0];
-    if(!data.history[dateStr]) data.history[dateStr] = {xp:0, quests:0};
+    if(!data.history[dateStr]) data.history[dateStr] = {xp:0, quests:0, score:0};
     data.history[dateStr].xp += 10;
     data.history[dateStr].quests += 1;
+    data.history[dateStr].score = (data.history[dateStr].score||0) + totalPts;
 
     playBeep();
-    notify("SYSTEM MESSAGE", "MISSION CLEARED: " + data.names[name]);
+    notify("SYSTEM MESSAGE", "MISSION CLEARED: " + data.names[name] + " [+" + totalPts + " pts]");
 
     save(); render();
+}
+
+function showPointsPopup(total, details, combo) {
+    let div = document.createElement("div");
+    div.className = "points-popup";
+    div.innerHTML = `
+        <div class="pts-main">+${total} PTS</div>
+        <div class="pts-detail">${details.join(" | ")}</div>
+        ${combo > 1 ? '<div style="color:#ff7a3a; font-size:1.2em; font-weight:900; margin-top:5px;">🔥 COMBO x' + combo + '</div>' : ''}
+    `;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 2000);
 }
 
 /* LOOP */
@@ -516,7 +586,7 @@ function card(name, time, stat, isPenalty=false){
     <div class="box ${isPenalty ? "penalty" : ""}">
         <b style="font-size:1.15em; display:block; margin-bottom:5px; letter-spacing:1px;">${isPenalty ? "⚠️ PENALTY: " : ""}${data.names[name]}</b>
         <div class="timer-text" id="t_${name}">${timeDisplay}</div>
-        <div style="font-size:0.85em; margin-bottom:20px; color:#8899aa;">REWARD: <span style="color:#00eaff">+10 XP</span> | STAT: <span style="color:#ffd700">[${stat.toUpperCase()}]</span></div>
+        <div style="font-size:0.85em; margin-bottom:20px; color:#8899aa;">REWARD: <span style="color:#00eaff">+10 XP</span> | <span style="color:#ffd700">+${100 + Math.floor((data.allQuests[name]?.time||0)/60)} PTS [${stat.toUpperCase()}]</span></div>
         
         <div style="display:flex; justify-content:center; flex-wrap:wrap; gap:5px;">
         ${(!q || q.notStarted) ? `<button onclick="start('${name}',${time})">START</button>` : ""}
@@ -542,6 +612,16 @@ function render(){
     document.getElementById("str").innerText=data.str;
     document.getElementById("int").innerText=data.int;
     document.getElementById("foc").innerText=data.foc;
+
+    document.getElementById("str-score").innerText=data.scores.str+" pts";
+    document.getElementById("int-score").innerText=data.scores.int+" pts";
+    document.getElementById("foc-score").innerText=data.scores.foc+" pts";
+    document.getElementById("total-score").innerText=data.scores.total.toLocaleString();
+
+    let comboEl = document.getElementById("combo-display");
+    if(data.combo > 1) {
+        comboEl.innerHTML = '<span class="combo-badge">🔥 COMBO x'+data.combo+'</span>';
+    } else { comboEl.innerHTML = ''; }
 
     if(!data.mode){
         document.getElementById("mode-selector").style.display="block";
@@ -580,7 +660,7 @@ function renderAdmin() {
         if (diffDays <= 7) { weeklyXP += entry.xp; weeklyQuests += entry.quests; }
         if (diffDays <= 30) { monthlyXP += entry.xp; monthlyQuests += entry.quests; }
         
-        listHTML += `<div class="history-entry"><span style="color:#8899aa">[${dateStr}]</span> Quests: <b style="color:#fff">${entry.quests}</b> | XP: <b style="color:#00eaff;">+${entry.xp}</b></div>`;
+        listHTML += `<div class="history-entry"><span style="color:#8899aa">[${dateStr}]</span> Quests: <b style="color:#fff">${entry.quests}</b> | XP: <b style="color:#00eaff;">+${entry.xp}</b> | Score: <b style="color:#ffd700;">+${entry.score||0}</b></div>`;
     });
     
     document.getElementById("stat-weekly-xp").innerText = weeklyXP;
