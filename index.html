@@ -372,12 +372,12 @@ let data;
 try{ data=JSON.parse(localStorage.getItem("arise"))||{}; }catch{ data={}; }
 
 data={
-    xp:data.xp||0,
-    lvl:data.lvl||1,
-    str:data.str||0,
-    int:data.int||0,
-    foc:data.foc||0,
-    streak:data.streak||0,
+    xp:Number(data.xp)||0,
+    lvl:Number(data.lvl)||1,
+    str:Number(data.str)||0,
+    int:Number(data.int)||0,
+    foc:Number(data.foc)||0,
+    streak:Number(data.streak)||0,
     lastDay:data.lastDay||null,
     quests:data.quests||{},
     penalty:data.penalty||[],
@@ -387,10 +387,20 @@ data={
     names:data.names,
     employeeQuests:data.employeeQuests,
     warriorQuests:data.warriorQuests,
-    todayScores:data.todayScores||{str:0,int:0,foc:0,total:0},
-    allTimeScores:data.allTimeScores||{str:0,int:0,foc:0,total:0},
-    combo:data.combo||0,
-    lastQuestTime:data.lastQuestTime||0,
+    todayScores: {
+        str: (data.todayScores && data.todayScores.str) || 0,
+        int: (data.todayScores && data.todayScores.int) || 0,
+        foc: (data.todayScores && data.todayScores.foc) || 0,
+        total: (data.todayScores && data.todayScores.total) || 0
+    },
+    allTimeScores: {
+        str: (data.allTimeScores && data.allTimeScores.str) || 0,
+        int: (data.allTimeScores && data.allTimeScores.int) || 0,
+        foc: (data.allTimeScores && data.allTimeScores.foc) || 0,
+        total: (data.allTimeScores && data.allTimeScores.total) || 0
+    },
+    combo:Number(data.combo)||0,
+    lastQuestTime:Number(data.lastQuestTime)||0,
     scoreDay:data.scoreDay||null
 };
 
@@ -522,21 +532,29 @@ function resume(name){
 
 /* COMPLETION LOGIC */
 function done(name, statStr){
+    if(!data.quests[name]) {
+        data.quests[name] = { notStarted: false, done: false };
+    }
     let q=data.quests[name];
-    if(!q||q.done)return;
+    if(q.done)return;
 
     // Mark as done
     q.done=true;
     q.notStarted=false;
 
-    // XP scales with quest duration: base 10 + 1 per 10 minutes of quest
-    let questTime = data.allQuests[name] ? data.allQuests[name].time : 0;
+    // XP calculation: Ensure numeric
+    let questTime = 0;
+    if(data.allQuests[name]) questTime = Number(data.allQuests[name].time) || 0;
+    
     let xpEarned = 10 + Math.floor(questTime / 600);
-    data.xp += xpEarned;
+    data.xp = (Number(data.xp) || 0) + xpEarned;
     
     // Increase stat points (STR, INT, FOC)
     let stats = statStr.split(",");
-    stats.forEach(s => { data[s.trim()]+=1; });
+    stats.forEach(s => { 
+        let sKey = s.trim();
+        if(data.hasOwnProperty(sKey)) data[sKey] = (Number(data[sKey]) || 0) + 1; 
+    });
 
     // Combo system: completing within 10 mins of last quest
     let now = Date.now();
