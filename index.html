@@ -659,7 +659,7 @@ function renderTimers(){
         if(!el)continue;
         let obj=data.quests[q];
 
-        if(obj.done){el.innerText="✅ DONE"; el.className="timer-text quest-done-label"; continue;}
+        if(obj.done){el.innerText="DONE"; el.className="timer-text quest-done-label"; continue;}
         if(obj.notStarted) continue;
         if(obj.paused){el.innerText=format(Math.floor(obj.remaining/1000)); continue;}
 
@@ -677,7 +677,7 @@ function card(name, time, stat, isPenalty=false){
     let timeDisplay = format(time);
     
     if(q){
-        if(q.done) timeDisplay="✅ DONE";
+        if(q.done) timeDisplay="DONE";
         else if(q.notStarted) timeDisplay=format(time);
         else if(q.paused) timeDisplay=format(Math.floor(q.remaining/1000));
         else timeDisplay=format(Math.max(0,Math.floor((q.end-Date.now())/1000)));
