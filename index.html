@@ -659,7 +659,7 @@ function renderTimers(){
         if(!el)continue;
         let obj=data.quests[q];
 
-        if(obj.done){el.innerText="DONE"; el.className="timer-text quest-done-label"; continue;}
+        if(obj.done){el.innerText="✅ DONE"; el.className="timer-text quest-done-label"; continue;}
         if(obj.notStarted) continue;
         if(obj.paused){el.innerText=format(Math.floor(obj.remaining/1000)); continue;}
 
@@ -677,7 +677,7 @@ function card(name, time, stat, isPenalty=false){
     let timeDisplay = format(time);
     
     if(q){
-        if(q.done) timeDisplay="DONE";
+        if(q.done) timeDisplay="✅ DONE";
         else if(q.notStarted) timeDisplay=format(time);
         else if(q.paused) timeDisplay=format(Math.floor(q.remaining/1000));
         else timeDisplay=format(Math.max(0,Math.floor((q.end-Date.now())/1000)));
@@ -947,8 +947,23 @@ function enableNotify(){
 }
 
 function notify(t,b){
-    if('Notification' in window && Notification.permission==="granted"){
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== "granted") return;
+
+    try {
         new Notification(t,{body:b, icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>"});
+    } catch (e) {
+        // Fallback for mobile Chrome or other environments where new Notification() is restricted
+        if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(t, {
+                    body: b,
+                    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>"
+                });
+            }).catch(err => console.warn("ServiceWorker notification failed:", err));
+        } else {
+            console.warn("Notification failed (illegal constructor) and no ServiceWorker fallback available.");
+        }
     }
 }
 
