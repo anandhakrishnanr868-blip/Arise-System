@@ -659,7 +659,7 @@ function renderTimers(){
         if(!el)continue;
         let obj=data.quests[q];
 
-        if(obj.done){el.innerText="✅ DONE"; el.className="timer-text quest-done-label"; continue;}
+        if(obj.done){el.innerText="DONE"; el.className="timer-text quest-done-label"; continue;}
         if(obj.notStarted) continue;
         if(obj.paused){el.innerText=format(Math.floor(obj.remaining/1000)); continue;}
 
@@ -677,7 +677,7 @@ function card(name, time, stat, isPenalty=false){
     let timeDisplay = format(time);
     
     if(q){
-        if(q.done) timeDisplay="✅ DONE";
+        if(q.done) timeDisplay="DONE";
         else if(q.notStarted) timeDisplay=format(time);
         else if(q.paused) timeDisplay=format(Math.floor(q.remaining/1000));
         else timeDisplay=format(Math.max(0,Math.floor((q.end-Date.now())/1000)));
@@ -693,7 +693,7 @@ function card(name, time, stat, isPenalty=false){
         <div style="font-size:0.85em; margin-bottom:20px; color:#8899aa;">REWARD: <span style="color:#00eaff">+${10 + Math.floor((data.allQuests[name]?.time||0)/600)} XP</span> | <span style="color:#ffd700">+${earnPts} PTS → [${stat.toUpperCase()}]</span></div>
         
         <div style="display:flex; justify-content:center; flex-wrap:wrap; gap:5px;">
-        ${isDone ? '<span style="color:#00ff88; font-weight:bold; font-size:1.1em;">✅ QUEST COMPLETED</span>' : ''}
+        ${isDone ? '<span style="color:#00ff88; font-weight:bold; font-size:1.1em;"> QUEST COMPLETED</span>' : ''}
         ${(!q || q.notStarted) && !isDone ? `<button onclick="start('${name}',${time})">START TIMER</button><button onclick="done('${name}','${stat}')" style="border-color:#00ff88;color:#00ff88;">COMPLETE NOW</button>` : ""}
         ${(q && !q.done && !q.paused && !q.notStarted) ? `<button onclick="pause('${name}')">PAUSE</button><button onclick="done('${name}','${stat}')" style="border-color:#00ff88;color:#00ff88;">COMPLETE</button>` : ""}
         ${(q && q.paused) ? `<button onclick="resume('${name}')">RESUME</button><button onclick="done('${name}','${stat}')" style="border-color:#00ff88;color:#00ff88;">COMPLETE</button>` : ""}
