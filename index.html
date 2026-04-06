@@ -3,7 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>ARISE SYSTEM 2.0</title>
+<title>ARISE SYSTEM</title>
+<meta name="description" content="Solo Leveling Productivity System - Daily Quest Tracker">
+<meta name="theme-color" content="#090b10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
@@ -149,7 +155,21 @@ button:active { transform: scale(0.96); }
 }
 .total-score-label { font-size:0.85em; color:#aab; letter-spacing:2px; }
 .total-score-num { font-size:2.2em; font-weight:900; color:#ffd700; text-shadow:0 0 15px rgba(255,215,0,0.6); margin-top:4px; }
+.alltime-score { font-size:0.8em; color:#8899aa; margin-top:2px; }
 .combo-badge { display:inline-block; background:rgba(255,50,50,0.15); border:1px solid rgba(255,100,50,0.4); color:#ff7a3a; padding:4px 12px; border-radius:20px; font-size:0.8em; font-weight:bold; margin-top:8px; }
+.quest-done-label { color:#00ff88; font-weight:900; text-shadow:0 0 10px rgba(0,255,136,0.6); }
+
+.clock-bar { font-size:0.85em; color:#556677; margin-bottom:10px; letter-spacing:1px; }
+.clock-bar .time { color:#00eaff; font-weight:bold; font-size:1.1em; }
+.clock-bar .date { color:#8899aa; }
+
+.daily-progress { margin-top:12px; }
+.daily-progress-label { font-size:0.85em; color:#8899aa; margin-bottom:6px; }
+.daily-progress-bar { width:100%; height:10px; background:rgba(0,0,0,0.5); border-radius:5px; border:1px solid rgba(0,255,136,0.15); overflow:hidden; }
+.daily-progress-fill { height:100%; background:linear-gradient(90deg,#00aa55,#00ff88); border-radius:5px; transition:width 0.8s ease; box-shadow:0 0 8px rgba(0,255,136,0.4); }
+.daily-progress-text { font-size:0.8em; color:#00ff88; margin-top:4px; font-weight:bold; }
+
+.status-msg { font-size:0.85em; color:#ffd700; margin-top:10px; min-height:20px; text-shadow:0 0 5px rgba(255,215,0,0.3); font-style:italic; }
 
 .points-popup {
     position:fixed; top:40%; left:50%; transform:translate(-50%,-50%);
@@ -214,12 +234,15 @@ button:active { transform: scale(0.96); }
 </head>
 <body>
 
-<h1 style="margin-top: 15px;">⚔ ARISE SYSTEM</h1>
+<div class="clock-bar" id="clock-bar">
+    <span class="date" id="date-display"></span> &nbsp;|&nbsp; <span class="time" id="time-display"></span>
+</div>
+
+<h1 style="margin-top: 5px;">⚔ ARISE SYSTEM</h1>
 
 <div class="nav-buttons">
-    <button onclick="switchTab('quests')" id="btn-quests">Quests</button>
-    <button onclick="switchTab('admin')" id="btn-admin">System Records</button>
-    <button onclick="enableNotify()">Enable Notifications</button>
+    <button onclick="switchTab('quests')" id="btn-quests">⚔ Quests</button>
+    <button onclick="switchTab('admin')" id="btn-admin">📊 Records</button>
 </div>
 
 <!-- Player Status Tracker -->
@@ -237,16 +260,24 @@ button:active { transform: scale(0.96); }
     
     <div style="font-size:0.9em; color:#aab;">⚔ DAILY STREAK: <b id="streak" style="color:#fff; font-size:1.2em;"></b> DAYS</div>
 
+    <div class="daily-progress">
+        <div class="daily-progress-label">TODAY'S QUEST PROGRESS</div>
+        <div class="daily-progress-bar"><div class="daily-progress-fill" id="quest-progress-fill" style="width:0%"></div></div>
+        <div class="daily-progress-text" id="quest-progress-text">0 / 0 QUESTS</div>
+    </div>
+
     <div class="grid-stats">
         <div class="stat-card">STR<br><b id="str"></b><span class="score-val" id="str-score">0 pts</span></div>
         <div class="stat-card">INT<br><b id="int"></b><span class="score-val" id="int-score">0 pts</span></div>
         <div class="stat-card">FOC<br><b id="foc"></b><span class="score-val" id="foc-score">0 pts</span></div>
     </div>
     <div class="total-score-box">
-        <div class="total-score-label">TOTAL SCORE</div>
-        <div class="total-score-num" id="total-score">0</div>
+        <div class="total-score-label">TODAY'S SCORE</div>
+        <div class="total-score-num" id="today-score">0</div>
+        <div class="alltime-score">ALL-TIME: <span id="alltime-score">0</span></div>
         <div id="combo-display"></div>
     </div>
+    <div class="status-msg" id="status-msg"></div>
 </div>
 
 <!-- QUESTS TAB -->
@@ -356,9 +387,11 @@ data={
     names:data.names,
     employeeQuests:data.employeeQuests,
     warriorQuests:data.warriorQuests,
-    scores:data.scores||{str:0,int:0,foc:0,total:0},
+    todayScores:data.todayScores||{str:0,int:0,foc:0,total:0},
+    allTimeScores:data.allTimeScores||{str:0,int:0,foc:0,total:0},
     combo:data.combo||0,
-    lastQuestTime:data.lastQuestTime||0
+    lastQuestTime:data.lastQuestTime||0,
+    scoreDay:data.scoreDay||null
 };
 
 /* Data Migration For Dynamic Quests */
@@ -402,21 +435,50 @@ function getRank(){
 }
 
 /* DAY RESET & MODE SELECTION */
-let today=new Date().toDateString();
-
-if(data.lastDay!==today){
-    if(data.lastDay!==null){
-        let missed=[];
-        for(let q in data.quests){ if(!data.quests[q].done) missed.push(q); }
-        missed = missed.filter(m => !data.penalty.includes(m));
-        data.penalty = data.penalty.concat(missed);
-        data.streak = missed.length ? 0 : data.streak+1;
+function checkDayReset(){
+    let today = new Date().toDateString();
+    if(data.lastDay!==today){
+        if(data.lastDay!==null){
+            let missed=[];
+            for(let q in data.quests){ if(!data.quests[q].done) missed.push(q); }
+            missed = missed.filter(m => !data.penalty.includes(m));
+            data.penalty = data.penalty.concat(missed);
+            data.streak = missed.length ? 0 : data.streak+1;
+        }
+        data.quests={};
+        data.lastDay=today;
+        data.mode=null;
+        data.todayScores = {str:0, int:0, foc:0, total:0};
+        data.combo = 0;
+        data.lastQuestTime = 0;
+        data.scoreDay = today;
+        save();
+        render();
+        notify("ARISE SYSTEM", "New day has begun. Choose your mode.");
     }
-    data.quests={};
-    data.lastDay=today;
-    data.mode=null; 
-    save();
+    if(data.scoreDay !== today){
+        data.todayScores = {str:0, int:0, foc:0, total:0};
+        data.combo = 0;
+        data.scoreDay = today;
+        save();
+    }
 }
+checkDayReset();
+// Check every 30 seconds for midnight reset
+setInterval(checkDayReset, 30000);
+
+/* LIVE CLOCK */
+function updateClock(){
+    let now = new Date();
+    let days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    let months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    document.getElementById('date-display').innerText = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+    let h = now.getHours(); let ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    document.getElementById('time-display').innerText = h + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0') + ' ' + ampm;
+}
+updateClock();
+setInterval(updateClock, 1000);
 
 function selectMode(m){
     data.mode = m;
@@ -461,52 +523,59 @@ function resume(name){
 /* COMPLETION LOGIC */
 function done(name, statStr){
     let q=data.quests[name];
-    if(!q||q.done||q.notStarted)return;
+    if(!q||q.done)return;
 
-    if(Date.now()<q.end){
-        alert("SYSTEM ERROR: Quest requirements not yet met.");
-        return;
-    }
+    // Mark as done
+    q.done=true;
+    q.notStarted=false;
 
-    q.done=true; data.xp+=10;
+    // XP scales with quest duration: base 10 + 1 per 10 minutes of quest
+    let questTime = data.allQuests[name] ? data.allQuests[name].time : 0;
+    let xpEarned = 10 + Math.floor(questTime / 600);
+    data.xp += xpEarned;
     
+    // Increase stat points (STR, INT, FOC)
     let stats = statStr.split(",");
     stats.forEach(s => { data[s.trim()]+=1; });
 
-    // Combo system: completing within 5 mins of last quest
+    // Combo system: completing within 10 mins of last quest
     let now = Date.now();
-    if(data.lastQuestTime && (now - data.lastQuestTime) < 300000) {
+    if(data.lastQuestTime && (now - data.lastQuestTime) < 600000) {
         data.combo = Math.min(data.combo + 1, 5);
     } else {
         data.combo = 1;
     }
     data.lastQuestTime = now;
 
-    // Calculate points: base 100 + combo bonus + time bonus
-    let questTime = data.allQuests[name] ? data.allQuests[name].time : 0;
-    let timeBonus = Math.floor(questTime / 60); // 1pt per minute
+    // Calculate score points: base 100 + time bonus per minute
+    let timeBonus = Math.floor(questTime / 60);
     let comboMultiplier = data.combo;
     let basePoints = 100;
     let totalPts = (basePoints + timeBonus) * comboMultiplier;
 
-    // Award points to each stat section
+    // Award points to each stat section (today + alltime)
     let ptsPerStat = Math.floor(totalPts / stats.length);
     let pointDetails = [];
     stats.forEach(s => {
         let key = s.trim();
-        data.scores[key] += ptsPerStat;
+        data.todayScores[key] = (data.todayScores[key]||0) + ptsPerStat;
+        data.allTimeScores[key] = (data.allTimeScores[key]||0) + ptsPerStat;
         pointDetails.push("+" + ptsPerStat + " " + key.toUpperCase());
     });
-    data.scores.total += totalPts;
+    data.todayScores.total = (data.todayScores.total||0) + totalPts;
+    data.allTimeScores.total = (data.allTimeScores.total||0) + totalPts;
 
     // Show points popup
-    showPointsPopup(totalPts, pointDetails, comboMultiplier);
+    showPointsPopup(totalPts, pointDetails, comboMultiplier, xpEarned);
 
-    let maxXp = data.lvl * 20;
-    if(data.xp >= maxXp){
-        data.xp = data.xp - maxXp; 
-        data.lvl++; levelUpAnim();
+    // Level up check — loop handles multiple level-ups at once
+    let didLevelUp = false;
+    while(data.xp >= getMaxXp(data.lvl)){
+        data.xp -= getMaxXp(data.lvl);
+        data.lvl++;
+        didLevelUp = true;
     }
+    if(didLevelUp) levelUpAnim();
 
     data.penalty = data.penalty.filter(p => p !== name);
 
@@ -518,17 +587,23 @@ function done(name, statStr){
     data.history[dateStr].score = (data.history[dateStr].score||0) + totalPts;
 
     playBeep();
-    notify("SYSTEM MESSAGE", "MISSION CLEARED: " + data.names[name] + " [+" + totalPts + " pts]");
+    notify("SYSTEM MESSAGE", "QUEST DONE: " + data.names[name] + " [+" + xpEarned + " XP, +" + totalPts + " pts]");
 
     save(); render();
 }
 
-function showPointsPopup(total, details, combo) {
+/* MAX XP FORMULA: scales with level */
+function getMaxXp(level){
+    return 20 + (level * 10);
+}
+
+function showPointsPopup(total, details, combo, xpEarned) {
     let div = document.createElement("div");
     div.className = "points-popup";
     div.innerHTML = `
         <div class="pts-main">+${total} PTS</div>
         <div class="pts-detail">${details.join(" | ")}</div>
+        <div style="color:#00eaff; font-size:0.9em; margin-top:3px;">+${xpEarned || 10} XP</div>
         ${combo > 1 ? '<div style="color:#ff7a3a; font-size:1.2em; font-weight:900; margin-top:5px;">🔥 COMBO x' + combo + '</div>' : ''}
     `;
     document.body.appendChild(div);
@@ -553,7 +628,7 @@ function renderTimers(){
         if(!el)continue;
         let obj=data.quests[q];
 
-        if(obj.done){el.innerText="[ CLEARED ]"; el.style.color="#00eaff"; el.style.textShadow="0 0 10px #00eaff"; continue;}
+        if(obj.done){el.innerText="✅ DONE"; el.className="timer-text quest-done-label"; continue;}
         if(obj.notStarted) continue;
         if(obj.paused){el.innerText=format(Math.floor(obj.remaining/1000)); continue;}
 
@@ -570,29 +645,27 @@ function card(name, time, stat, isPenalty=false){
     let q=data.quests[name];
     let timeDisplay = format(time);
     
-    if(q && !isPenalty){
-        if(q.done) timeDisplay="[ CLEARED ]";
+    if(q){
+        if(q.done) timeDisplay="✅ DONE";
         else if(q.notStarted) timeDisplay=format(time);
         else if(q.paused) timeDisplay=format(Math.floor(q.remaining/1000));
         else timeDisplay=format(Math.max(0,Math.floor((q.end-Date.now())/1000)));
-    } else if(q && isPenalty) {
-       if(q.done) timeDisplay="[ CLEARED ]";
-       else if(q.notStarted) timeDisplay=format(time);
-       else if(q.paused) timeDisplay=format(Math.floor(q.remaining/1000));
-       else timeDisplay=format(Math.max(0,Math.floor((q.end-Date.now())/1000)));
     }
 
+    let earnPts = 100 + Math.floor((data.allQuests[name]?.time||0)/60);
+    let isDone = q && q.done;
+
     return `
-    <div class="box ${isPenalty ? "penalty" : ""}">
+    <div class="box ${isPenalty ? "penalty" : ""}" style="${isDone ? 'border-color:rgba(0,255,136,0.3); opacity:0.85;' : ''}">
         <b style="font-size:1.15em; display:block; margin-bottom:5px; letter-spacing:1px;">${isPenalty ? "⚠️ PENALTY: " : ""}${data.names[name]}</b>
-        <div class="timer-text" id="t_${name}">${timeDisplay}</div>
-        <div style="font-size:0.85em; margin-bottom:20px; color:#8899aa;">REWARD: <span style="color:#00eaff">+10 XP</span> | <span style="color:#ffd700">+${100 + Math.floor((data.allQuests[name]?.time||0)/60)} PTS [${stat.toUpperCase()}]</span></div>
+        <div class="timer-text ${isDone ? 'quest-done-label' : ''}" id="t_${name}">${timeDisplay}</div>
+        <div style="font-size:0.85em; margin-bottom:20px; color:#8899aa;">REWARD: <span style="color:#00eaff">+${10 + Math.floor((data.allQuests[name]?.time||0)/600)} XP</span> | <span style="color:#ffd700">+${earnPts} PTS → [${stat.toUpperCase()}]</span></div>
         
         <div style="display:flex; justify-content:center; flex-wrap:wrap; gap:5px;">
-        ${(!q || q.notStarted) ? `<button onclick="start('${name}',${time})">START</button>` : ""}
-        ${(q && !q.done && !q.paused && !q.notStarted) ? `<button onclick="pause('${name}')">PAUSE</button>` : ""}
-        ${(q && q.paused) ? `<button onclick="resume('${name}')">RESUME</button>` : ""}
-        ${(q && !q.done && !q.notStarted) ? `<button onclick="done('${name}','${stat}')">COMPLETE</button>` : ""}
+        ${isDone ? '<span style="color:#00ff88; font-weight:bold; font-size:1.1em;">✅ QUEST COMPLETED</span>' : ''}
+        ${(!q || q.notStarted) && !isDone ? `<button onclick="start('${name}',${time})">START TIMER</button><button onclick="done('${name}','${stat}')" style="border-color:#00ff88;color:#00ff88;">COMPLETE NOW</button>` : ""}
+        ${(q && !q.done && !q.paused && !q.notStarted) ? `<button onclick="pause('${name}')">PAUSE</button><button onclick="done('${name}','${stat}')" style="border-color:#00ff88;color:#00ff88;">COMPLETE</button>` : ""}
+        ${(q && q.paused) ? `<button onclick="resume('${name}')">RESUME</button><button onclick="done('${name}','${stat}')" style="border-color:#00ff88;color:#00ff88;">COMPLETE</button>` : ""}
         </div>
     </div>
     `;
@@ -603,7 +676,7 @@ function render(){
     document.getElementById("lvl").innerText=data.lvl;
     document.getElementById("xp").innerText=data.xp;
     
-    let maxXp = data.lvl * 20;
+    let maxXp = getMaxXp(data.lvl);
     document.getElementById("xp-max").innerText = maxXp;
     document.getElementById("xp-fill").style.width = Math.min(100, (data.xp / maxXp) * 100) + "%";
 
@@ -613,15 +686,31 @@ function render(){
     document.getElementById("int").innerText=data.int;
     document.getElementById("foc").innerText=data.foc;
 
-    document.getElementById("str-score").innerText=data.scores.str+" pts";
-    document.getElementById("int-score").innerText=data.scores.int+" pts";
-    document.getElementById("foc-score").innerText=data.scores.foc+" pts";
-    document.getElementById("total-score").innerText=data.scores.total.toLocaleString();
+    document.getElementById("str-score").innerText=(data.todayScores.str||0)+" pts";
+    document.getElementById("int-score").innerText=(data.todayScores.int||0)+" pts";
+    document.getElementById("foc-score").innerText=(data.todayScores.foc||0)+" pts";
+    document.getElementById("today-score").innerText=(data.todayScores.total||0).toLocaleString();
+    document.getElementById("alltime-score").innerText=(data.allTimeScores.total||0).toLocaleString();
 
     let comboEl = document.getElementById("combo-display");
     if(data.combo > 1) {
         comboEl.innerHTML = '<span class="combo-badge">🔥 COMBO x'+data.combo+'</span>';
     } else { comboEl.innerHTML = ''; }
+
+    // Daily quest progress
+    let totalQuests = 0, doneQuests = 0;
+    if(data.mode){
+        let list = data.mode === 'employee' ? data.employeeQuests : data.warriorQuests;
+        totalQuests = list.length;
+        list.forEach(q => { if(data.quests[q] && data.quests[q].done) doneQuests++; });
+    }
+    let pct = totalQuests > 0 ? Math.round((doneQuests/totalQuests)*100) : 0;
+    document.getElementById("quest-progress-fill").style.width = pct + "%";
+    document.getElementById("quest-progress-text").innerText = doneQuests + " / " + totalQuests + " QUESTS (" + pct + "%)";
+
+    // Status message based on progress
+    let msg = getStatusMessage(doneQuests, totalQuests);
+    document.getElementById("status-msg").innerText = msg;
 
     if(!data.mode){
         document.getElementById("mode-selector").style.display="block";
@@ -806,12 +895,15 @@ function addNewQ() {
 /* LEVEL UP FX */
 function levelUpAnim(){
     let div=document.createElement("div");
-    div.innerHTML="<h1 style='color:#ffd700; text-shadow:0 0 20px #ffd700, 0 0 40px #ffd700, 0 0 60px #ff0000; font-size:3em;'>LEVEL UP!</h1>";
+    div.innerHTML=`<h1 style='color:#ffd700; text-shadow:0 0 20px #ffd700, 0 0 40px #ffd700, 0 0 60px #ff0000; font-size:3em;'>LEVEL UP!</h1><p style='color:#00eaff; font-size:1.5em; font-weight:900; text-shadow:0 0 10px #00eaff;'>LEVEL ${data.lvl}</p><p style='color:#aab; font-size:0.9em;'>RANK: ${getRank()}</p>`;
     div.style.position="fixed"; div.style.top="40%"; div.style.left="50%";
     div.style.transform="translate(-50%,-50%)"; div.style.zIndex="9999";
     div.style.pointerEvents="none"; div.style.textAlign="center";
+    div.style.background="rgba(0,0,0,0.85)"; div.style.padding="30px 50px";
+    div.style.borderRadius="15px"; div.style.border="2px solid #ffd700";
+    div.style.boxShadow="0 0 40px rgba(255,215,0,0.5)";
     document.body.appendChild(div);
-    setTimeout(()=>div.remove(), 2500);
+    setTimeout(()=>div.remove(), 3000);
 }
 
 /* NOTIFICATIONS API */
@@ -827,6 +919,23 @@ function notify(t,b){
     if('Notification' in window && Notification.permission==="granted"){
         new Notification(t,{body:b, icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>"});
     }
+}
+
+/* STATUS MESSAGES */
+function getStatusMessage(done, total){
+    if(total === 0) return "⚔ Select your mode to begin today's missions.";
+    let pct = Math.round((done/total)*100);
+    if(pct === 0) return "⚔ The hunt begins. Start your first quest, Hunter.";
+    if(pct < 25) return "🔥 You've taken the first step. Keep pushing forward.";
+    if(pct < 50) return "⚡ Building momentum. The system recognizes your effort.";
+    if(pct < 75) return "💪 Halfway through. A true hunter never gives up.";
+    if(pct < 100) return "🗡️ Almost there. The final quests await your conquest.";
+    return "👑 ALL QUESTS CLEARED. You have proven your worth today, Hunter.";
+}
+
+/* AUTO-ENABLE NOTIFICATIONS */
+if('Notification' in window && Notification.permission === 'default'){
+    Notification.requestPermission();
 }
 
 /* BOOT */
