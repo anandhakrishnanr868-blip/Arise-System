@@ -1,328 +1,628 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>ARISE SYSTEM</title>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>ARISE SYSTEM 2.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-body{
-background:#061017;
-color:#00eaff;
-font-family:Orbitron,monospace;
-margin:0;
-padding:15px;
-text-align:center;
+* { box-sizing: border-box; }
+
+body {
+    background: #090b10;
+    background-image: 
+        radial-gradient(circle at 15% 50%, rgba(0, 234, 255, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 85% 30%, rgba(255, 215, 0, 0.02) 0%, transparent 50%);
+    color: #c5d3df;
+    font-family: 'Orbitron', sans-serif;
+    margin: 0;
+    padding: 10px;
+    text-align: center;
+    min-height: 100vh;
+    overflow-x: hidden;
 }
 
-.box{
-border:1px solid #00eaff;
-border-radius:10px;
-padding:15px;
-margin:15px 0;
+h1, h2, h3 {
+    text-transform: uppercase;
+    color: #e2f1ff;
+    text-shadow: 0 0 5px rgba(0, 234, 255, 0.5), 0 0 15px rgba(0, 234, 255, 0.3);
+    letter-spacing: 2px;
 }
 
-button{
-background:#061017;
-color:#00eaff;
-border:1px solid #00eaff;
-padding:6px 12px;
-margin:5px;
-cursor:pointer;
+.box {
+    background: rgba(15, 20, 30, 0.7);
+    border: 1px solid rgba(0, 234, 255, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 234, 255, 0.02);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 12px;
+    padding: 25px;
+    margin: 15px auto;
+    max-width: 650px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-button:hover{
-background:#00eaff;
-color:#061017;
+.box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(0, 234, 255, 0.8), transparent);
+    opacity: 0.7;
 }
 
-.penalty{
-border-color:red;
-color:#ff5a5a;
+.box:hover {
+    border-color: rgba(0, 234, 255, 0.4);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6), inset 0 0 25px rgba(0, 234, 255, 0.05);
+    transform: translateY(-2px);
 }
 
-h2{margin:5px}
+.penalty {
+    border-color: rgba(255, 50, 50, 0.3);
+    box-shadow: 0 8px 32px 0 rgba(50, 0, 0, 0.5), inset 0 0 20px rgba(255, 50, 50, 0.05);
+}
+.penalty::before { background: linear-gradient(90deg, transparent, rgba(255, 50, 50, 0.8), transparent); }
+.penalty h1, .penalty h2, .penalty h3, .penalty b {
+    color: #ff5a5a;
+    text-shadow: 0 0 10px rgba(255,50,50,0.5);
+}
+
+.sys-message { border-color: rgba(255, 215, 0, 0.3); }
+.sys-message::before { background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.8), transparent); }
+.sys-message h2, .sys-message b { color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.4); }
+
+button {
+    background: rgba(0, 20, 30, 0.6);
+    color: #00eaff;
+    border: 1px solid rgba(0, 234, 255, 0.4);
+    padding: 12px 24px;
+    margin: 6px;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-weight: bold;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    border-radius: 6px;
+    font-family: 'Orbitron', monospace;
+    backdrop-filter: blur(5px);
+    width: auto;
+}
+
+button:hover {
+    background: rgba(0, 234, 255, 0.15);
+    border-color: #00eaff;
+    box-shadow: 0 0 15px rgba(0, 234, 255, 0.4);
+    text-shadow: 0 0 5px #00eaff;
+}
+button:active { transform: scale(0.96); }
+
+.penalty button { color: #ff7a7a; border-color: rgba(255, 50, 50, 0.4); }
+.penalty button:hover {
+    background: rgba(255, 50, 50, 0.15);
+    border-color: #ff5a5a;
+    box-shadow: 0 0 15px rgba(255, 50, 50, 0.4);
+}
+
+.stat-bar-container { display: flex; align-items: center; justify-content: center; margin: 15px 0; font-size: 0.9em; font-weight: bold; flex-wrap: wrap; }
+.stat-bar {
+    flex-grow: 1; min-width: 150px; max-width: 300px; height: 12px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 234, 255, 0.2);
+    border-radius: 6px; margin: 5px 15px; overflow: hidden;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.8);
+}
+.stat-fill {
+    height: 100%; background: linear-gradient(90deg, #0088ff, #00eaff);
+    box-shadow: 0 0 10px rgba(0, 234, 255, 0.6);
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 5px;
+}
+
+.nav-buttons { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.nav-buttons button { flex-grow: 1; min-width: 130px; max-width: 200px; }
+
+.timer-text {
+    font-size: 2.2em; font-weight: 900; margin: 15px 0;
+    color: #ffffff;
+    text-shadow: 0 0 8px rgba(0,234,255,0.6);
+    letter-spacing: 3px;
+}
+
+.grid-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
+.stat-card {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 234, 255, 0.15);
+    padding: 15px 5px; border-radius: 8px;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+    font-size: 0.9em;
+}
+.stat-card b { display: block; margin-top: 8px; font-size: 1.6em; color:#00eaff; text-shadow: 0 0 5px rgba(0,234,255,0.5); }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn 0.4s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Admin Dashboard Elements */
+.admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top:20px; }
+.admin-stat { font-size: 1.6em; font-weight: bold; color: #ffd700; text-shadow: 0 0 10px rgba(255,215,0,0.5); margin-top: 5px; }
+.chart-container { position: relative; height: 250px; width: 100%; margin-top: 30px; }
+
+.history-list {
+    text-align: left; max-height: 250px; overflow-y: auto; font-size: 0.85em;
+    padding: 12px; background: rgba(0,0,0,0.5); border: 1px solid rgba(0,234,255,0.1);
+    border-radius: 8px; margin-top: 15px; font-family: monospace;
+}
+.history-entry { margin: 6px 0; border-bottom: 1px dashed rgba(0,234,255,0.15); padding-bottom: 6px; }
+
+/* Scrollbar tweaks */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: rgba(0, 234, 255, 0.4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #00eaff; }
+
+/* Full Mobile Optimization Focus */
+@media (max-width: 600px) {
+    body { padding: 5px; }
+    .box { padding: 18px 12px; margin: 10px auto; border-radius: 10px; }
+    h1 { font-size: 1.4em; }
+    .timer-text { font-size: 1.8em; }
+    button { padding: 10px 15px; font-size: 0.9em; width: 100%; margin: 5px 0; }
+    .nav-buttons button { width: 100%; max-width: none; }
+    .grid-stats { gap: 6px; }
+    .stat-card { padding: 10px 2px; }
+    .stat-card b { font-size: 1.3em; }
+    .stat-bar-container { flex-direction: column; }
+    .stat-bar { margin: 8px 0; width: 100%; max-width: none; }
+    .admin-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
 
-<h1>⚔ ARISE SYSTEM</h1>
+<h1 style="margin-top: 15px;">⚔ ARISE SYSTEM</h1>
 
-<div class="box">
-Level: <span id="lvl"></span> |
-XP: <span id="xp"></span> |
-Rank: <span id="rank"></span> |
-Streak: <span id="streak"></span>
+<div class="nav-buttons">
+    <button onclick="switchTab('quests')" id="btn-quests">Quests</button>
+    <button onclick="switchTab('admin')" id="btn-admin">System Records</button>
+    <button onclick="enableNotify()">Enable Notifications</button>
 </div>
 
+<!-- Player Status Tracker -->
 <div class="box">
-STR <span id="str"></span> |
-INT <span id="int"></span> |
-FOC <span id="foc"></span>
+    <div style="font-size: 1.1em; font-weight: bold; color: #fff;">
+        PLAYER LEVEL: <span id="lvl" style="color:#00eaff; text-shadow:0 0 5px #00eaff; font-size:1.3em;"></span> 
+        | <span style="color:#ffd700; text-shadow:0 0 5px #ffd700;">RANK: <span id="rank"></span></span>
+    </div>
+    
+    <div class="stat-bar-container">
+        <span style="color:#8899aa;">XP</span>
+        <div class="stat-bar"><div class="stat-fill" id="xp-fill"></div></div>
+        <span style="color:#8899aa;"><span id="xp" style="color:#fff;"></span> / <span id="xp-max"></span></span>
+    </div>
+    
+    <div style="font-size:0.9em; color:#aab;">⚔ DAILY STREAK: <b id="streak" style="color:#fff; font-size:1.2em;"></b> DAYS</div>
+
+    <div class="grid-stats">
+        <div class="stat-card">STR<br><b id="str"></b></div>
+        <div class="stat-card">INT<br><b id="int"></b></div>
+        <div class="stat-card">FOC<br><b id="foc"></b></div>
+    </div>
 </div>
 
-<div class="box">
-<button onclick="enableNotify()">Enable Notifications</button>
+<!-- QUESTS TAB -->
+<div id="tab-quests" class="tab-content active">
+    
+    <!-- Daily Mode Selector -->
+    <div id="mode-selector" class="box sys-message" style="display:none;">
+        <h2>SYSTEM MESSAGE</h2>
+        <p style="color:#e2f1ff; line-height: 1.5; font-size:0.95em;">The world has reset. Choose your path for today. The requirements will be locked upon selection.</p>
+        <button onclick="selectMode('employee')" style="border-color:#00eaff; color:#00eaff; margin-top:15px;">EMPLOYEE MODE (Work)</button>
+        <button onclick="selectMode('warrior')" style="border-color:#ffd700; color:#ffd700; margin-top:10px;">WARRIOR MODE (Business)</button>
+    </div>
+
+    <!-- Active Tasks Matrix -->
+    <div id="quest-container">
+        <h2 style="margin-top: 25px; font-size:1.2em; color:rgba(0,234,255,0.7);">[ DAILY MISSIONS ]</h2>
+        <div id="daily"></div>
+
+        <h2 style="margin-top: 30px; font-size:1.2em; color:#ff5a5a; text-shadow:0 0 10px rgba(255,42,42,0.4);">[ PENALTY ZONE ]</h2>
+        <div id="penalty"></div>
+    </div>
 </div>
 
-<div class="box">
-<h2>Daily Quests</h2>
-<div id="daily"></div>
+<!-- ADMIN / DASHBOARD TAB -->
+<div id="tab-admin" class="tab-content">
+    <div class="box sys-message">
+        <h2>SYSTEM ANALYTICS</h2>
+        <p style="color:#aab; font-size:0.9em;">Decrypting Player Performance Records...</p>
+        
+        <div class="admin-grid">
+            <div class="stat-card">
+                7-Day XP
+                <div class="admin-stat" id="stat-weekly-xp">0</div>
+            </div>
+            <div class="stat-card">
+                7-Day Quests
+                <div class="admin-stat" id="stat-weekly-quests">0</div>
+            </div>
+            <div class="stat-card" style="border-color: rgba(255,215,0,0.2);">
+                30-Day XP
+                <div class="admin-stat" id="stat-monthly-xp" style="color:#00eaff; text-shadow:0 0 5px #00eaff;">0</div>
+            </div>
+            <div class="stat-card" style="border-color: rgba(255,215,0,0.2);">
+                30-Day Quests
+                <div class="admin-stat" id="stat-monthly-quests" style="color:#00eaff; text-shadow:0 0 5px #00eaff;">0</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="xpChart"></canvas>
+        </div>
+        
+        <h3 style="margin-top:35px; text-align:left; font-size:1em; color:#8899aa;">> Activity Log</h3>
+        <div class="history-list" id="history-list"></div>
+    </div>
 </div>
 
-<div class="box">
-<h2>Penalty Quests</h2>
-<div id="penalty"></div>
-</div>
-
-<audio id="beep" src="beep.mp3"></audio>
+<audio id="beep" src="beep.mp3" preload="auto"></audio>
 
 <script>
-
-/* SAFE LOAD */
+/* SAFE LOAD FROM LOCAL STORAGE */
 let data;
-try{
-data=JSON.parse(localStorage.getItem("arise"))||{};
-}catch{
-data={};
-}
+try{ data=JSON.parse(localStorage.getItem("arise"))||{}; }catch{ data={}; }
 
 data={
-xp:data.xp||0,
-lvl:data.lvl||1,
-str:data.str||0,
-int:data.int||0,
-foc:data.foc||0,
-streak:data.streak||0,
-lastDay:data.lastDay||null,
-quests:data.quests||{},
-penalty:data.penalty||[]
+    xp:data.xp||0,
+    lvl:data.lvl||1,
+    str:data.str||0,
+    int:data.int||0,
+    foc:data.foc||0,
+    streak:data.streak||0,
+    lastDay:data.lastDay||null,
+    quests:data.quests||{},
+    penalty:data.penalty||[],
+    mode:data.mode||null,
+    history:data.history||{}
 };
 
-/* QUEST LIST */
-const QUESTS={
-Exercise:{time:1200,stat:"str"},
-DeepThinking:{time:3600,stat:"foc"},
-LearnSkill:{time:3600,stat:"int"},
-StrategyThinking:{time:2400,stat:"int"},
-ProblemSolving:{time:1800,stat:"foc"}
+/* QUEST DEFINITIONS MASTER LIST */
+const ALL_QUESTS={
+    // Legacy mapping preventing errors for old unused penalties
+    Exercise:{time:1200,stat:"str"}, DeepThinking:{time:3600,stat:"foc"}, LearnSkill:{time:3600,stat:"int"}, StrategyThinking:{time:2400,stat:"int"}, ProblemSolving:{time:1800,stat:"foc"},
+    // Arise V2
+    Workout:{time:3600,stat:"str"}, // 1h
+    MartialArt:{time:1800,stat:"str"}, // 30m
+    StrategyProblem:{time:3600,stat:"int,foc"}, // 1h
+    NewSkill:{time:3600,stat:"int"}, // 1h
+    NextDayPlanning:{time:1800,stat:"foc"}, // 30m
+    ReadBook:{time:3600,stat:"int"}, // 1h
+    PowerNap:{time:1800,stat:"foc"}, // 30m
+    ExtraWork:{time:7200,stat:"int"}, // 2h
+    Rest:{time:7200,stat:"foc"} // 2h
 };
 
-/* DISPLAY NAMES */
 const NAMES={
-Exercise:"Exercise",
-DeepThinking:"Deep Work",
-LearnSkill:"Learn Skill",
-StrategyThinking:"Strategy Thinking",
-ProblemSolving:"Problem Solving"
+    Exercise:"Exercise", DeepThinking:"Deep Work", LearnSkill:"Learn Skill", StrategyThinking:"Strategy Thinking", ProblemSolving:"Problem Solving",
+    Workout:"Workout", MartialArt:"Martial Art Training", StrategyProblem:"Strategy & Problem Solving", NewSkill:"New Skill", NextDayPlanning:"Next Day Planning", ReadBook:"Read / Audio Book", PowerNap:"Power Nap", ExtraWork:"Extra Work", Rest:"Rest"
 };
 
-/* RANK FIX */
-function getRank(){
-let x=data.lvl;
-if(x<10)return"E";
-if(x<35)return"D";
-if(x<50)return"C";
-if(x<75)return"B";
-if(x<100)return"A";
-return"S";
+const EMPLOYEE_MODE = ["Workout", "MartialArt", "StrategyProblem", "NewSkill", "NextDayPlanning"];
+const WARRIOR_MODE = ["Workout", "MartialArt", "StrategyProblem", "NewSkill", "ReadBook", "PowerNap", "ExtraWork", "Rest"];
+
+/* TAB & AUDIO LOGIC */
+function switchTab(tabId){
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-'+tabId).classList.add('active');
+    if(tabId === 'admin') renderAdmin();
 }
 
-/* DAY RESET */
+function playBeep() {
+    let audio = document.getElementById("beep");
+    if(audio) {
+        audio.currentTime = 0;
+        let playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(e => console.log("Audio play blocked by browser policies until interaction."));
+        }
+    }
+}
+
+/* RANKING LOGIC */
+function getRank(){
+    let x=data.lvl;
+    if(x<10)return"E"; if(x<35)return"D"; if(x<50)return"C"; if(x<75)return"B"; if(x<100)return"A";
+    return"S";
+}
+
+/* DAY RESET & MODE SELECTION */
 let today=new Date().toDateString();
 
 if(data.lastDay!==today){
-
-if(data.lastDay!==null){
-let missed=[];
-for(let q in QUESTS){
-if(!data.quests[q]?.done) missed.push(q);
-}
-data.penalty=missed;
-data.streak= missed.length?0:data.streak+1;
-}
-
-data.quests={};
-data.lastDay=today;
-}
-
-/* SAVE */
-function save(){
-localStorage.setItem("arise",JSON.stringify(data));
+    if(data.lastDay!==null){
+        let missed=[];
+        for(let q in data.quests){ if(!data.quests[q].done) missed.push(q); }
+        missed = missed.filter(m => !data.penalty.includes(m));
+        data.penalty = data.penalty.concat(missed);
+        data.streak = missed.length ? 0 : data.streak+1;
+    }
+    data.quests={};
+    data.lastDay=today;
+    data.mode=null; 
+    save();
 }
 
-/* FORMAT */
+function selectMode(m){
+    data.mode = m;
+    let list = m === 'employee' ? EMPLOYEE_MODE : WARRIOR_MODE;
+    list.forEach(q => {
+        if(!data.quests[q]) { data.quests[q] = { notStarted: true, done: false }; }
+    });
+    save(); render();
+}
+
+/* STORAGE */
+function save(){ localStorage.setItem("arise",JSON.stringify(data)); }
+
+/* FORMAT TIME */
 function format(s){
-let m=Math.floor(s/60);
-let sec=s%60;
-return m+":"+sec.toString().padStart(2,"0");
+    let h=Math.floor(s/3600);
+    let m=Math.floor((s%3600)/60);
+    let sec=s%60;
+    if(h>0) return h+":"+m.toString().padStart(2,"0")+":"+sec.toString().padStart(2,"0");
+    return m+":"+sec.toString().padStart(2,"0");
 }
 
-/* START */
+/* TIMER ACTIONS */
 function start(name,time){
-if(data.quests[name])return;
-data.quests[name]={
-end:Date.now()+time*1000,
-paused:false,
-done:false
-};
-save();
-render();
+    let o = data.quests[name] || {};
+    o.end = Date.now() + time*1000; o.paused = false; o.done = false; o.notStarted = false;
+    data.quests[name] = o;
+    save(); render();
 }
 
-/* PAUSE */
 function pause(name){
-let q=data.quests[name];
-if(!q||q.paused||q.done)return;
-q.remaining=q.end-Date.now();
-q.paused=true;
-save();
-render();
+    let q=data.quests[name];
+    if(!q||q.paused||q.done||q.notStarted)return;
+    q.remaining=q.end-Date.now(); q.paused=true;
+    save(); render();
 }
 
-/* RESUME */
 function resume(name){
-let q=data.quests[name];
-if(!q||!q.paused||q.done)return;
-q.end=Date.now()+q.remaining;
-q.paused=false;
-save();
-render();
+    let q=data.quests[name];
+    if(!q||!q.paused||q.done)return;
+    q.end=Date.now()+q.remaining; q.paused=false;
+    save(); render();
 }
 
-/* DONE */
-function done(name,stat){
-let q=data.quests[name];
-if(!q||q.done)return;
+/* COMPLETION LOGIC */
+function done(name, statStr){
+    let q=data.quests[name];
+    if(!q||q.done||q.notStarted)return;
 
-if(Date.now()<q.end){
-alert("Timer not finished");
-return;
+    if(Date.now()<q.end){
+        alert("SYSTEM ERROR: Quest requirements not yet met.");
+        return;
+    }
+
+    q.done=true; data.xp+=10;
+    
+    let stats = statStr.split(",");
+    stats.forEach(s => { data[s.trim()]+=1; });
+
+    let maxXp = data.lvl * 20;
+    if(data.xp >= maxXp){
+        data.xp = data.xp - maxXp; 
+        data.lvl++; levelUpAnim();
+    }
+
+    data.penalty = data.penalty.filter(p => p !== name); // clear from penalty
+
+    // Save to History
+    let dateStr = new Date().toISOString().split('T')[0];
+    if(!data.history[dateStr]) data.history[dateStr] = {xp:0, quests:0};
+    data.history[dateStr].xp += 10;
+    data.history[dateStr].quests += 1;
+
+    playBeep();
+    notify("SYSTEM MESSAGE", "MISSION CLEARED: " + NAMES[name]);
+
+    save(); render();
 }
 
-q.done=true;
-data.xp+=10;
-data[stat]+=1;
-
-if(data.xp>=data.lvl*20){
-data.xp=0;
-data.lvl++;
-levelUpAnim();
-}
-
-document.getElementById("beep").play();
-notify("Quest Complete",NAMES[name]+" finished!");
-
-save();
-render();
-}
-
-/* TIMER LOOP */
+/* LOOP */
 setInterval(()=>{
-for(let q in data.quests){
-let obj=data.quests[q];
-if(obj.done||obj.paused)continue;
-if(Date.now()>=obj.end) obj.finished=true;
-}
-renderTimers();
-save();
-},1000);
+    let changed = false;
+    for(let q in data.quests){
+        let obj=data.quests[q];
+        if(obj.done||obj.paused||obj.notStarted)continue;
+        if(Date.now()>=obj.end && !obj.finished) { obj.finished=true; changed = true; }
+    }
+    renderTimers();
+    if(changed) save();
+}, 1000);
 
-/* TIMER RENDER */
 function renderTimers(){
-for(let q in data.quests){
-let el=document.getElementById("t_"+q);
-if(!el)continue;
+    for(let q in data.quests){
+        let el=document.getElementById("t_"+q);
+        if(!el)continue;
+        let obj=data.quests[q];
 
-let obj=data.quests[q];
+        if(obj.done){el.innerText="[ CLEARED ]"; el.style.color="#00eaff"; el.style.textShadow="0 0 10px #00eaff"; continue;}
+        if(obj.notStarted) continue;
+        if(obj.paused){el.innerText=format(Math.floor(obj.remaining/1000)); continue;}
 
-if(obj.done){el.innerText="DONE";continue;}
-if(obj.paused){el.innerText=format(Math.floor(obj.remaining/1000));continue;}
-
-let rem=Math.max(0,obj.end-Date.now());
-el.innerText=format(Math.floor(rem/1000));
-}
-}
-
-/* CARD */
-function card(name,time,stat,isPenalty=false){
-
-let q=data.quests[name];
-let timeDisplay="--:--";
-
-if(q){
-if(q.done) timeDisplay="DONE";
-else if(q.paused) timeDisplay=format(Math.floor(q.remaining/1000));
-else timeDisplay=format(Math.max(0,Math.floor((q.end-Date.now())/1000)));
+        let rem=Math.max(0,obj.end-Date.now());
+        el.innerText=format(Math.floor(rem/1000));
+        if(rem === 0) el.style.color = "#00eaff";
+    }
 }
 
-return`
-<div class="box ${isPenalty?"penalty":""}">
-<b>${isPenalty?"Penalty: ":""}${NAMES[name]}</b><br>
-<span id="t_${name}">${timeDisplay}</span><br>
+/* HTML RENDERING GENERATOR */
+function card(name, time, stat, isPenalty=false){
+    if(!ALL_QUESTS[name]) return ""; 
 
-${!q?`<button onclick="start('${name}',${time})">Start</button>`:""}
+    let q=data.quests[name];
+    let timeDisplay = format(time);
+    
+    if(q && !isPenalty){
+        if(q.done) timeDisplay="[ CLEARED ]";
+        else if(q.notStarted) timeDisplay=format(time);
+        else if(q.paused) timeDisplay=format(Math.floor(q.remaining/1000));
+        else timeDisplay=format(Math.max(0,Math.floor((q.end-Date.now())/1000)));
+    } else if(q && isPenalty) {
+       if(q.done) timeDisplay="[ CLEARED ]";
+       else if(q.notStarted) timeDisplay=format(time);
+       else if(q.paused) timeDisplay=format(Math.floor(q.remaining/1000));
+       else timeDisplay=format(Math.max(0,Math.floor((q.end-Date.now())/1000)));
+    }
 
-${q && !q.done && !q.paused?`<button onclick="pause('${name}')">Pause</button>`:""}
-
-${q && q.paused?`<button onclick="resume('${name}')">Resume</button>`:""}
-
-${q && !q.done?`<button onclick="done('${name}','${stat}')">Done</button>`:""}
-</div>
-`;
+    return `
+    <div class="box ${isPenalty ? "penalty" : ""}">
+        <b style="font-size:1.15em; display:block; margin-bottom:5px; letter-spacing:1px;">${isPenalty ? "⚠️ PENALTY: " : ""}${NAMES[name]}</b>
+        <div class="timer-text" id="t_${name}">${timeDisplay}</div>
+        <div style="font-size:0.85em; margin-bottom:20px; color:#8899aa;">REWARD: <span style="color:#00eaff">+10 XP</span> | STAT: <span style="color:#ffd700">[${stat.toUpperCase()}]</span></div>
+        
+        <div style="display:flex; justify-content:center; flex-wrap:wrap; gap:5px;">
+        ${(!q || q.notStarted) ? `<button onclick="start('${name}',${time})">START</button>` : ""}
+        ${(q && !q.done && !q.paused && !q.notStarted) ? `<button onclick="pause('${name}')">PAUSE</button>` : ""}
+        ${(q && q.paused) ? `<button onclick="resume('${name}')">RESUME</button>` : ""}
+        ${(q && !q.done && !q.notStarted) ? `<button onclick="done('${name}','${stat}')">COMPLETE</button>` : ""}
+        </div>
+    </div>
+    `;
 }
 
-/* RENDER */
+/* RENDER CORE UI */
 function render(){
+    document.getElementById("lvl").innerText=data.lvl;
+    document.getElementById("xp").innerText=data.xp;
+    
+    let maxXp = data.lvl * 20;
+    document.getElementById("xp-max").innerText = maxXp;
+    document.getElementById("xp-fill").style.width = Math.min(100, (data.xp / maxXp) * 100) + "%";
 
-document.getElementById("lvl").innerText=data.lvl;
-document.getElementById("xp").innerText=data.xp;
-document.getElementById("rank").innerText=getRank();
-document.getElementById("streak").innerText=data.streak;
-document.getElementById("str").innerText=data.str;
-document.getElementById("int").innerText=data.int;
-document.getElementById("foc").innerText=data.foc;
+    document.getElementById("rank").innerText=getRank();
+    document.getElementById("streak").innerText=data.streak;
+    document.getElementById("str").innerText=data.str;
+    document.getElementById("int").innerText=data.int;
+    document.getElementById("foc").innerText=data.foc;
 
-/* DAILY */
-let html="";
-for(let q in QUESTS){
-html+=card(q,QUESTS[q].time,QUESTS[q].stat,false);
+    if(!data.mode){
+        document.getElementById("mode-selector").style.display="block";
+        document.getElementById("quest-container").style.display="none";
+    } else {
+        document.getElementById("mode-selector").style.display="none";
+        document.getElementById("quest-container").style.display="block";
+
+        let html="";
+        let list = data.mode === 'employee' ? EMPLOYEE_MODE : WARRIOR_MODE;
+        list.forEach(q => { html += card(q, ALL_QUESTS[q].time, ALL_QUESTS[q].stat, false); });
+        document.getElementById("daily").innerHTML=html;
+
+        let phtml="";
+        data.penalty.forEach(q => { if(ALL_QUESTS[q]) phtml += card(q, ALL_QUESTS[q].time, ALL_QUESTS[q].stat, true); });
+        document.getElementById("penalty").innerHTML=phtml || "<p style='color:rgba(255,255,255,0.2)'>Zone secure. No penalties accumulated.</p>";
+    }
 }
-document.getElementById("daily").innerHTML=html;
 
-/* PENALTY */
-let phtml="";
-data.penalty.forEach(q=>{
-phtml+=card(q,QUESTS[q].time,QUESTS[q].stat,true);
-});
-document.getElementById("penalty").innerHTML=phtml;
+/* RENDER ADMIN CHART & DATA */
+let xpChartInstance = null;
+
+function renderAdmin() {
+    let now = new Date();
+    let weeklyXP = 0, weeklyQuests = 0, monthlyXP = 0, monthlyQuests = 0;
+    let listHTML = "";
+    
+    let sortedDatesAsc = Object.keys(data.history).sort((a,b) => a.localeCompare(b));
+    let sortedDatesDesc = [...sortedDatesAsc].reverse();
+    
+    sortedDatesDesc.forEach(dateStr => {
+        let entry = data.history[dateStr];
+        let d = new Date(dateStr);
+        let diffDays = Math.floor((now - d) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays <= 7) { weeklyXP += entry.xp; weeklyQuests += entry.quests; }
+        if (diffDays <= 30) { monthlyXP += entry.xp; monthlyQuests += entry.quests; }
+        
+        listHTML += `<div class="history-entry"><span style="color:#8899aa">[${dateStr}]</span> Quests: <b style="color:#fff">${entry.quests}</b> | XP: <b style="color:#00eaff;">+${entry.xp}</b></div>`;
+    });
+    
+    document.getElementById("stat-weekly-xp").innerText = weeklyXP;
+    document.getElementById("stat-weekly-quests").innerText = weeklyQuests;
+    document.getElementById("stat-monthly-xp").innerText = monthlyXP;
+    document.getElementById("stat-monthly-quests").innerText = monthlyQuests;
+    document.getElementById("history-list").innerHTML = listHTML || "<i style='color:#556677'>Awaiting system data...</i>";
+
+    // Chart logic
+    let ctx = document.getElementById('xpChart');
+    if(ctx){
+        if(xpChartInstance) xpChartInstance.destroy();
+        
+        let chartLabels = sortedDatesAsc.slice(-7);
+        let chartData = chartLabels.map(d => data.history[d].xp);
+        
+        if(chartLabels.length === 0){ chartLabels = [new Date().toISOString().split('T')[0]]; chartData = [0]; }
+
+        Chart.defaults.color = '#8899aa'; Chart.defaults.font.family = 'Orbitron';
+        
+        xpChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'XP Gained (Last Active Days)',
+                    data: chartData,
+                    borderColor: '#00eaff',
+                    backgroundColor: 'rgba(0, 234, 255, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#ffd700',
+                    pointBorderColor: '#000',
+                    pointRadius: 4, pointHoverRadius: 7
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { grid: { display: false } }
+                },
+                plugins: { legend: { labels: { color: '#e2f1ff' } } }
+            }
+        });
+    }
 }
 
 /* LEVEL UP FX */
 function levelUpAnim(){
-let div=document.createElement("div");
-div.innerText="LEVEL UP!";
-div.style.position="fixed";
-div.style.top="40%";
-div.style.left="50%";
-div.style.transform="translate(-50%,-50%)";
-div.style.fontSize="40px";
-div.style.color="#00eaff";
-document.body.appendChild(div);
-setTimeout(()=>div.remove(),1500);
+    let div=document.createElement("div");
+    div.innerHTML="<h1 style='color:#ffd700; text-shadow:0 0 20px #ffd700, 0 0 40px #ffd700, 0 0 60px #ff0000; font-size:3em;'>LEVEL UP!</h1>";
+    div.style.position="fixed"; div.style.top="40%"; div.style.left="50%";
+    div.style.transform="translate(-50%,-50%)"; div.style.zIndex="9999";
+    div.style.pointerEvents="none"; div.style.textAlign="center";
+    document.body.appendChild(div);
+    setTimeout(()=>div.remove(), 2500);
 }
 
-/* NOTIFY */
+/* NOTIFICATIONS API */
 function enableNotify(){
-Notification.requestPermission();
+    if('Notification' in window) {
+        Notification.requestPermission().then(p => {
+            if(p==="granted") alert("SYSTEM NOTIFICATIONS ENABLED.");
+        });
+    } else { alert("Browser does not support desktop notifications."); }
 }
 
 function notify(t,b){
-if(Notification.permission==="granted"){
-new Notification(t,{body:b});
-}
+    if('Notification' in window && Notification.permission==="granted"){
+        new Notification(t,{body:b, icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>"});
+    }
 }
 
-/* INIT */
+/* BOOT */
 render();
 
 </script>
