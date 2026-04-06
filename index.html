@@ -359,6 +359,10 @@ button:active { transform: scale(0.96); }
         <h4 style="margin-top:35px; text-align:left; color:#e2f1ff;">[ SYSTEM REGISTRY ]</h4>
         <div id="admin-quest-list"></div>
 
+        <hr style="border: 1px solid rgba(255,50,50,0.2); margin: 40px 0;">
+        <h4 style="color:#ff5a5a;">[ EMERGENCY PROTOCOL ]</h4>
+        <p style="color:#aab; font-size:0.8em;">If the system is malfunctioning or scores are not updating, use the protocol below.</p>
+        <button onclick="hardReset()" style="width:100%; border-color:#ff5a5a; color:#ff5a5a;">HARD RESET SYSTEM DATA</button>
     </div>
 </div>
 
@@ -532,82 +536,91 @@ function resume(name){
 
 /* COMPLETION LOGIC */
 function done(name, statStr){
-    if(!data.quests[name]) {
-        data.quests[name] = { notStarted: false, done: false };
+    try {
+        if(!data.allQuests[name]) return alert("Quest data missing from registry.");
+        
+        if(!data.quests[name]) {
+            data.quests[name] = { notStarted: false, done: false };
+        }
+        let q=data.quests[name];
+        if(q.done) return;
+
+        // Mark as done
+        q.done=true;
+        q.notStarted=false;
+        q.finished=true;
+
+        // XP calculation: Ensure numeric
+        let questTime = Number(data.allQuests[name].time) || 0;
+        let xpEarned = 10 + Math.floor(questTime / 600);
+        data.xp = (Number(data.xp) || 0) + xpEarned;
+        
+        // Increase stat points (STR, INT, FOC)
+        let stats = statStr.split(",");
+        stats.forEach(s => { 
+            let sKey = s.trim().toLowerCase();
+            if(data.hasOwnProperty(sKey)) data[sKey] = (Number(data[sKey]) || 0) + 1; 
+        });
+
+        // Combo system: completing within 10 mins of last quest
+        let now = Date.now();
+        if(data.lastQuestTime && (now - Number(data.lastQuestTime)) < 600000) {
+            data.combo = Math.min((Number(data.combo) || 0) + 1, 5);
+        } else {
+            data.combo = 1;
+        }
+        data.lastQuestTime = now;
+
+        // Calculate score points: base 100 + time bonus per minute
+        let timeBonus = Math.floor(questTime / 60);
+        let comboMultiplier = Number(data.combo) || 1;
+        let basePoints = 100;
+        let totalPts = (basePoints + timeBonus) * comboMultiplier;
+
+        // Award points to each stat section (today + alltime)
+        let ptsPerStat = Math.floor(totalPts / stats.length);
+        let pointDetails = [];
+        stats.forEach(s => {
+            let key = s.trim().toLowerCase();
+            if(data.todayScores.hasOwnProperty(key)) {
+                data.todayScores[key] = (Number(data.todayScores[key])||0) + ptsPerStat;
+                data.allTimeScores[key] = (Number(data.allTimeScores[key])||0) + ptsPerStat;
+                pointDetails.push("+" + ptsPerStat + " " + key.toUpperCase());
+            }
+        });
+        data.todayScores.total = (Number(data.todayScores.total)||0) + totalPts;
+        data.allTimeScores.total = (Number(data.allTimeScores.total)||0) + totalPts;
+
+        // Show points popup
+        showPointsPopup(totalPts, pointDetails, comboMultiplier, xpEarned);
+
+        // Level up check
+        let didLevelUp = false;
+        while(data.xp >= getMaxXp(data.lvl)){
+            data.xp -= getMaxXp(data.lvl);
+            data.lvl = (Number(data.lvl) || 1) + 1;
+            didLevelUp = true;
+        }
+        if(didLevelUp) levelUpAnim();
+
+        data.penalty = data.penalty.filter(p => p !== name);
+
+        // Save to History
+        let dateStr = new Date().toISOString().split('T')[0];
+        if(!data.history[dateStr]) data.history[dateStr] = {xp:0, quests:0, score:0};
+        data.history[dateStr].xp = (Number(data.history[dateStr].xp)||0) + xpEarned;
+        data.history[dateStr].quests = (Number(data.history[dateStr].quests)||0) + 1;
+        data.history[dateStr].score = (Number(data.history[dateStr].score)||0) + totalPts;
+
+        playBeep();
+        notify("ARISE SYSTEM", "QUEST FINISHED: " + (data.names[name]||name));
+        
+        save();
+        render();
+    } catch (e) {
+        console.error(e);
+        alert("SYSTEM ERROR: Quest completion failed. " + e.message);
     }
-    let q=data.quests[name];
-    if(q.done)return;
-
-    // Mark as done
-    q.done=true;
-    q.notStarted=false;
-
-    // XP calculation: Ensure numeric
-    let questTime = 0;
-    if(data.allQuests[name]) questTime = Number(data.allQuests[name].time) || 0;
-    
-    let xpEarned = 10 + Math.floor(questTime / 600);
-    data.xp = (Number(data.xp) || 0) + xpEarned;
-    
-    // Increase stat points (STR, INT, FOC)
-    let stats = statStr.split(",");
-    stats.forEach(s => { 
-        let sKey = s.trim();
-        if(data.hasOwnProperty(sKey)) data[sKey] = (Number(data[sKey]) || 0) + 1; 
-    });
-
-    // Combo system: completing within 10 mins of last quest
-    let now = Date.now();
-    if(data.lastQuestTime && (now - data.lastQuestTime) < 600000) {
-        data.combo = Math.min(data.combo + 1, 5);
-    } else {
-        data.combo = 1;
-    }
-    data.lastQuestTime = now;
-
-    // Calculate score points: base 100 + time bonus per minute
-    let timeBonus = Math.floor(questTime / 60);
-    let comboMultiplier = data.combo;
-    let basePoints = 100;
-    let totalPts = (basePoints + timeBonus) * comboMultiplier;
-
-    // Award points to each stat section (today + alltime)
-    let ptsPerStat = Math.floor(totalPts / stats.length);
-    let pointDetails = [];
-    stats.forEach(s => {
-        let key = s.trim();
-        data.todayScores[key] = (data.todayScores[key]||0) + ptsPerStat;
-        data.allTimeScores[key] = (data.allTimeScores[key]||0) + ptsPerStat;
-        pointDetails.push("+" + ptsPerStat + " " + key.toUpperCase());
-    });
-    data.todayScores.total = (data.todayScores.total||0) + totalPts;
-    data.allTimeScores.total = (data.allTimeScores.total||0) + totalPts;
-
-    // Show points popup
-    showPointsPopup(totalPts, pointDetails, comboMultiplier, xpEarned);
-
-    // Level up check — loop handles multiple level-ups at once
-    let didLevelUp = false;
-    while(data.xp >= getMaxXp(data.lvl)){
-        data.xp -= getMaxXp(data.lvl);
-        data.lvl++;
-        didLevelUp = true;
-    }
-    if(didLevelUp) levelUpAnim();
-
-    data.penalty = data.penalty.filter(p => p !== name);
-
-    // Save to History
-    let dateStr = new Date().toISOString().split('T')[0];
-    if(!data.history[dateStr]) data.history[dateStr] = {xp:0, quests:0, score:0};
-    data.history[dateStr].xp += 10;
-    data.history[dateStr].quests += 1;
-    data.history[dateStr].score = (data.history[dateStr].score||0) + totalPts;
-
-    playBeep();
-    notify("SYSTEM MESSAGE", "QUEST DONE: " + data.names[name] + " [+" + xpEarned + " XP, +" + totalPts + " pts]");
-
-    save(); render();
 }
 
 /* MAX XP FORMULA: scales with level */
@@ -954,6 +967,13 @@ function getStatusMessage(done, total){
 /* AUTO-ENABLE NOTIFICATIONS */
 if('Notification' in window && Notification.permission === 'default'){
     Notification.requestPermission();
+}
+
+function hardReset() {
+    if(confirm("CRITICAL WARNING: This will permanently delete all your Level, XP, Stats, and History. System will reset to Level 1. Are you sure?")) {
+        localStorage.removeItem("arise");
+        location.reload();
+    }
 }
 
 /* BOOT */
