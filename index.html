@@ -23,7 +23,7 @@ body {
     overflow-x: hidden;
 }
 
-h1, h2, h3 {
+h1, h2, h3, h4 {
     text-transform: uppercase;
     color: #e2f1ff;
     text-shadow: 0 0 5px rgba(0, 234, 255, 0.5), 0 0 15px rgba(0, 234, 255, 0.3);
@@ -156,6 +156,19 @@ button:active { transform: scale(0.96); }
 }
 .history-entry { margin: 6px 0; border-bottom: 1px dashed rgba(0,234,255,0.15); padding-bottom: 6px; }
 
+.system-input {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(0,234,255,0.3);
+    color: #e2f1ff;
+    border-radius: 5px;
+    font-family: 'Orbitron', monospace;
+}
+.system-input:focus { outline: none; border-color: #00eaff; box-shadow: 0 0 10px rgba(0,234,255,0.5); }
+.system-input option { background: #050814; color: #e2f1ff; }
+
 /* Scrollbar tweaks */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 3px; }
@@ -263,12 +276,41 @@ button:active { transform: scale(0.96); }
         
         <h3 style="margin-top:35px; text-align:left; font-size:1em; color:#8899aa;">> Activity Log</h3>
         <div class="history-list" id="history-list"></div>
+        
+        <hr style="border: 1px solid rgba(0,234,255,0.1); margin: 40px 0;">
+        <h3 style="margin-top:20px; color:#00eaff;">> Quest Configuration</h3>
+        <p style="color:#aab; font-size:0.85em;">Add new quests or configure existing system rules.</p>
+        
+        <div style="background:rgba(0,234,255,0.05); padding:15px; border-radius:8px; border:1px solid rgba(0,234,255,0.2); text-align:left;">
+            <h4 style="margin-top:0; color:#ffd700;">[ INSTALL NEW QUEST ]</h4>
+            <input type="text" id="nq-name" placeholder="Quest Name (e.g. Read Book)" class="system-input"><br>
+            <input type="number" id="nq-time" placeholder="Duration (Minutes)" class="system-input"><br>
+            <select id="nq-stat" class="system-input">
+                <option value="str">Strength (STR)</option>
+                <option value="int">Intelligence (INT)</option>
+                <option value="foc">Focus (FOC)</option>
+                <option value="str,int">STR + INT</option>
+                <option value="str,foc">STR + FOC</option>
+                <option value="int,foc">INT + FOC</option>
+            </select>
+            <div style="margin: 15px 0; color:#e2f1ff; font-weight:bold;">
+                <label><input type="checkbox" id="nq-emp"> Assign to Employee</label>
+                <label style="margin-left:15px;"><input type="checkbox" id="nq-war"> Assign to Warrior</label>
+            </div>
+            <button onclick="addNewQ()" style="width:100%; border-color:#ffd700; color:#ffd700;">ADD TO SYSTEM</button>
+        </div>
+
+        <h4 style="margin-top:35px; text-align:left; color:#e2f1ff;">[ SYSTEM REGISTRY ]</h4>
+        <div id="admin-quest-list"></div>
+
     </div>
 </div>
 
 <audio id="beep" src="beep.mp3" preload="auto"></audio>
 
 <script>
+function save(){ localStorage.setItem("arise",JSON.stringify(data)); }
+
 /* SAFE LOAD FROM LOCAL STORAGE */
 let data;
 try{ data=JSON.parse(localStorage.getItem("arise"))||{}; }catch{ data={}; }
@@ -284,32 +326,27 @@ data={
     quests:data.quests||{},
     penalty:data.penalty||[],
     mode:data.mode||null,
-    history:data.history||{}
+    history:data.history||{},
+    allQuests:data.allQuests,
+    names:data.names,
+    employeeQuests:data.employeeQuests,
+    warriorQuests:data.warriorQuests
 };
 
-/* QUEST DEFINITIONS MASTER LIST */
-const ALL_QUESTS={
-    // Legacy mapping preventing errors for old unused penalties
-    Exercise:{time:1200,stat:"str"}, DeepThinking:{time:3600,stat:"foc"}, LearnSkill:{time:3600,stat:"int"}, StrategyThinking:{time:2400,stat:"int"}, ProblemSolving:{time:1800,stat:"foc"},
-    // Arise V2
-    Workout:{time:3600,stat:"str"}, // 1h
-    MartialArt:{time:1800,stat:"str"}, // 30m
-    StrategyProblem:{time:3600,stat:"int,foc"}, // 1h
-    NewSkill:{time:3600,stat:"int"}, // 1h
-    NextDayPlanning:{time:1800,stat:"foc"}, // 30m
-    ReadBook:{time:3600,stat:"int"}, // 1h
-    PowerNap:{time:1800,stat:"foc"}, // 30m
-    ExtraWork:{time:7200,stat:"int"}, // 2h
-    Rest:{time:7200,stat:"foc"} // 2h
-};
-
-const NAMES={
-    Exercise:"Exercise", DeepThinking:"Deep Work", LearnSkill:"Learn Skill", StrategyThinking:"Strategy Thinking", ProblemSolving:"Problem Solving",
-    Workout:"Workout", MartialArt:"Martial Art Training", StrategyProblem:"Strategy & Problem Solving", NewSkill:"New Skill", NextDayPlanning:"Next Day Planning", ReadBook:"Read / Audio Book", PowerNap:"Power Nap", ExtraWork:"Extra Work", Rest:"Rest"
-};
-
-const EMPLOYEE_MODE = ["Workout", "MartialArt", "StrategyProblem", "NewSkill", "NextDayPlanning"];
-const WARRIOR_MODE = ["Workout", "MartialArt", "StrategyProblem", "NewSkill", "ReadBook", "PowerNap", "ExtraWork", "Rest"];
+/* Data Migration For Dynamic Quests */
+if (!data.allQuests) {
+    data.allQuests = {
+        Exercise:{time:1200,stat:"str"}, DeepThinking:{time:3600,stat:"foc"}, LearnSkill:{time:3600,stat:"int"}, StrategyThinking:{time:2400,stat:"int"}, ProblemSolving:{time:1800,stat:"foc"},
+        Workout:{time:3600,stat:"str"}, MartialArt:{time:1800,stat:"str"}, StrategyProblem:{time:3600,stat:"int,foc"}, NewSkill:{time:3600,stat:"int"}, NextDayPlanning:{time:1800,stat:"foc"}, ReadBook:{time:3600,stat:"int"}, PowerNap:{time:1800,stat:"foc"}, ExtraWork:{time:7200,stat:"int"}, Rest:{time:7200,stat:"foc"}, CryvexWork:{time:21600,stat:"int,foc"}
+    };
+    data.names = {
+        Exercise:"Exercise", DeepThinking:"Deep Work", LearnSkill:"Learn Skill", StrategyThinking:"Strategy Thinking", ProblemSolving:"Problem Solving",
+        Workout:"Workout", MartialArt:"Martial Art Training", StrategyProblem:"Strategy & Problem Solving", NewSkill:"New Skill", NextDayPlanning:"Next Day Planning", ReadBook:"Read / Audio Book", PowerNap:"Power Nap", ExtraWork:"Extra Work", Rest:"Rest", CryvexWork:"Cryvex Work"
+    };
+    data.employeeQuests = ["Workout", "MartialArt", "StrategyProblem", "NewSkill", "NextDayPlanning"];
+    data.warriorQuests = ["Workout", "MartialArt", "StrategyProblem", "NewSkill", "ReadBook", "PowerNap", "ExtraWork", "Rest", "CryvexWork"];
+    save(); 
+}
 
 /* TAB & AUDIO LOGIC */
 function switchTab(tabId){
@@ -355,15 +392,12 @@ if(data.lastDay!==today){
 
 function selectMode(m){
     data.mode = m;
-    let list = m === 'employee' ? EMPLOYEE_MODE : WARRIOR_MODE;
+    let list = m === 'employee' ? data.employeeQuests : data.warriorQuests;
     list.forEach(q => {
         if(!data.quests[q]) { data.quests[q] = { notStarted: true, done: false }; }
     });
     save(); render();
 }
-
-/* STORAGE */
-function save(){ localStorage.setItem("arise",JSON.stringify(data)); }
 
 /* FORMAT TIME */
 function format(s){
@@ -426,7 +460,7 @@ function done(name, statStr){
     data.history[dateStr].quests += 1;
 
     playBeep();
-    notify("SYSTEM MESSAGE", "MISSION CLEARED: " + NAMES[name]);
+    notify("SYSTEM MESSAGE", "MISSION CLEARED: " + data.names[name]);
 
     save(); render();
 }
@@ -461,7 +495,7 @@ function renderTimers(){
 
 /* HTML RENDERING GENERATOR */
 function card(name, time, stat, isPenalty=false){
-    if(!ALL_QUESTS[name]) return ""; 
+    if(!data.allQuests[name]) return ""; 
 
     let q=data.quests[name];
     let timeDisplay = format(time);
@@ -480,7 +514,7 @@ function card(name, time, stat, isPenalty=false){
 
     return `
     <div class="box ${isPenalty ? "penalty" : ""}">
-        <b style="font-size:1.15em; display:block; margin-bottom:5px; letter-spacing:1px;">${isPenalty ? "⚠️ PENALTY: " : ""}${NAMES[name]}</b>
+        <b style="font-size:1.15em; display:block; margin-bottom:5px; letter-spacing:1px;">${isPenalty ? "⚠️ PENALTY: " : ""}${data.names[name]}</b>
         <div class="timer-text" id="t_${name}">${timeDisplay}</div>
         <div style="font-size:0.85em; margin-bottom:20px; color:#8899aa;">REWARD: <span style="color:#00eaff">+10 XP</span> | STAT: <span style="color:#ffd700">[${stat.toUpperCase()}]</span></div>
         
@@ -517,12 +551,12 @@ function render(){
         document.getElementById("quest-container").style.display="block";
 
         let html="";
-        let list = data.mode === 'employee' ? EMPLOYEE_MODE : WARRIOR_MODE;
-        list.forEach(q => { html += card(q, ALL_QUESTS[q].time, ALL_QUESTS[q].stat, false); });
+        let list = data.mode === 'employee' ? data.employeeQuests : data.warriorQuests;
+        list.forEach(q => { html += card(q, data.allQuests[q].time, data.allQuests[q].stat, false); });
         document.getElementById("daily").innerHTML=html;
 
         let phtml="";
-        data.penalty.forEach(q => { if(ALL_QUESTS[q]) phtml += card(q, ALL_QUESTS[q].time, ALL_QUESTS[q].stat, true); });
+        data.penalty.forEach(q => { if(data.allQuests[q]) phtml += card(q, data.allQuests[q].time, data.allQuests[q].stat, true); });
         document.getElementById("penalty").innerHTML=phtml || "<p style='color:rgba(255,255,255,0.2)'>Zone secure. No penalties accumulated.</p>";
     }
 }
@@ -594,6 +628,99 @@ function renderAdmin() {
             }
         });
     }
+
+    renderAdminQuests();
+}
+
+/* QUEST ADMIN TAB LOGIC */
+
+function renderAdminQuests() {
+    let ht = "";
+    Object.keys(data.allQuests).forEach(k => {
+        let q = data.allQuests[k];
+        let n = data.names[k];
+        let isEmp = data.employeeQuests.includes(k) ? "checked" : "";
+        let isWar = data.warriorQuests.includes(k) ? "checked" : "";
+        
+        ht += `
+        <div style="background:rgba(0,0,0,0.4); padding:15px; margin:10px 0; border:1px solid rgba(0,234,255,0.15); border-radius:5px; text-align:left;">
+            <b style="color:#00eaff;font-size:1.1em;">${n}</b> <span style="color:#8899aa;">- ${Math.round(q.time/60)} mins [${q.stat.toUpperCase()}]</span>
+            <div style="margin-top:10px; display:flex; gap:15px; flex-wrap:wrap; align-items:center;">
+                <label style="color:#e2f1ff;"><input type="checkbox" onchange="toggleList('${k}', 'emp')" ${isEmp}> Employee</label>
+                <label style="color:#ffd700;"><input type="checkbox" onchange="toggleList('${k}', 'war')" ${isWar}> Warrior</label>
+            </div>
+            <div style="margin-top:12px; display:flex; gap:5px;">
+                <button onclick="editQTime('${k}')" style="padding:6px 12px; font-size:0.8em; margin:0;">Edit Time</button>
+                <button onclick="deleteQ('${k}')" style="padding:6px 12px; font-size:0.8em; color:#ff5a5a; border-color:#ff5a5a; margin:0;">Delete</button>
+            </div>
+        </div>`;
+    });
+    document.getElementById("admin-quest-list").innerHTML = ht || "<p style='color:#aab;'>No quests registerd.</p>";
+}
+
+function toggleList(k, listType) {
+    let arr = listType === 'emp' ? data.employeeQuests : data.warriorQuests;
+    let idx = arr.indexOf(k);
+    if(idx > -1) arr.splice(idx, 1);
+    else arr.push(k);
+    save();
+}
+
+function editQTime(k) {
+    let t = prompt("Modify Quest Duration (in Minutes):", Math.round(data.allQuests[k].time/60));
+    if(t !== null) {
+        let val = parseInt(t);
+        if(!isNaN(val) && val > 0) {
+            data.allQuests[k].time = val * 60;
+            save(); render(); renderAdminQuests();
+        } else {
+            alert("Invalid time entered.");
+        }
+    }
+}
+
+function deleteQ(k) {
+    if(confirm("SYSTEM WARNING: Are you sure you want to permanently delete: " + data.names[k] + "? This action cannot be reversed.")) {
+        delete data.allQuests[k];
+        delete data.names[k];
+        data.employeeQuests = data.employeeQuests.filter(x => x !== k);
+        data.warriorQuests = data.warriorQuests.filter(x => x !== k);
+        data.penalty = data.penalty.filter(x => x !== k);
+        if(data.quests[k]) delete data.quests[k];
+        save(); render(); renderAdminQuests();
+    }
+}
+
+function addNewQ() {
+    let n = document.getElementById("nq-name").value.trim();
+    let m = parseInt(document.getElementById("nq-time").value);
+    let s = document.getElementById("nq-stat").value;
+    let bemp = document.getElementById("nq-emp").checked;
+    let bwar = document.getElementById("nq-war").checked;
+    
+    if(!n) return alert("System requires a quest name.");
+    if(isNaN(m) || m <= 0) return alert("Valid positive duration required.");
+    
+    let id = n.replace(/[^a-zA-Z0-9]/g, '');
+    if(!id) id = "q" + Date.now();
+    
+    if(data.allQuests[id]) { alert("Quest already exists!"); return; }
+    
+    data.allQuests[id] = { time: m * 60, stat: s };
+    data.names[id] = n;
+    
+    if(bemp) data.employeeQuests.push(id);
+    if(bwar) data.warriorQuests.push(id);
+    
+    save();
+    document.getElementById("nq-name").value = "";
+    document.getElementById("nq-time").value = "";
+    document.getElementById("nq-emp").checked = false;
+    document.getElementById("nq-war").checked = false;
+    
+    renderAdminQuests();
+    render();
+    alert("New Quest successfully injected into the system matrix.");
 }
 
 /* LEVEL UP FX */
